@@ -1,0 +1,4 @@
+.section { display: none; }
+.section.active { display: block; }
+.navbar-item:hover { background-color: #1e40af; }
+.navbar-item.active { background-color: #1d4ed8; }
