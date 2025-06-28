@@ -1,7 +1,7 @@
 <?php
-require_once 'config/db_connect.php';
-require_once 'includes/function.php';
-require_once 'includes/header.php';
+require_once '../config/db_connect.php';
+require_once '../includes/function.php';
+require_once '../includes/header.php';
 
 if (!in_array($_SESSION['user']['level'], ['admin', 'pegawai'])) {
     header('Location: dashboard.php');
@@ -27,7 +27,7 @@ $stmt = $pdo->query("SELECT * FROM biaya");
 $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <div class="flex min-h-screen">
-    <?php require_once 'includes/sidebar.php'; ?>
+    <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <div id="costManagement" class="section active">
             <h2 class="text-2xl font-bold mb-6">Manajemen Biaya</h2>
@@ -122,4 +122,4 @@ function deleteCost(id_biaya) {
     }
 }
 </script>
-<?php require_once 'includes/footer.php'; ?>
+<?php require_once '../includes/footer.php'; ?>

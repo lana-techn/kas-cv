@@ -1,6 +1,6 @@
 <?php
-require_once 'config/db_connect.php';
-require_once 'includes/header.php';
+require_once '../config/db_connect.php';
+require_once '../includes/header.php';
 
 $stmt = $pdo->query("SELECT COUNT(*) as total FROM barang");
 $totalBarang = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
@@ -18,7 +18,7 @@ $totalPengeluaran = $totalPembelian + $totalBiaya;
 $saldoKas = $totalPenjualan - $totalPengeluaran;
 ?>
 <div class="flex min-h-screen">
-    <?php require_once 'includes/sidebar.php'; ?>
+    <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <div id="dashboard" class="section active">
             <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
@@ -127,4 +127,4 @@ $saldoKas = $totalPenjualan - $totalPengeluaran;
         }
     });
 </script>
-<?php require_once 'includes/footer.php'; ?>
+<?php require_once '../includes/footer.php'; ?>

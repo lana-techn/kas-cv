@@ -1,7 +1,7 @@
 <?php
-require_once 'config/db_connect.php';
-require_once 'includes/function.php';
-require_once 'includes/header.php';
+require_once '../config/db_connect.php';
+require_once '../includes/function.php';
+require_once '../includes/header.php';
 
 if ($_SESSION['user']['level'] !== 'admin') {
     header('Location: dashboard.php');
@@ -23,7 +23,7 @@ $stmt = $pdo->query("SELECT * FROM barang");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <div class="flex min-h-screen">
-    <?php require_once 'includes/sidebar.php'; ?>
+    <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <div id="productManagement" class="section active">
             <h2 class="text-2xl font-bold mb-6">Manajemen Produk</h2>
@@ -113,4 +113,4 @@ function deleteProduct(kd_barang) {
     }
 }
 </script>
-<?php require_once 'includes/footer.php'; ?>
+<?php require_once '../includes/footer.php'; ?>

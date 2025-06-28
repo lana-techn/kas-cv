@@ -26,7 +26,7 @@ if (!isset($_SESSION['user']) && !in_array(basename($_SERVER['PHP_SELF']), ['log
             <?php if (isset($_SESSION['user'])): ?>
             <div class="flex items-center space-x-4">
                 <span class="text-sm"><?php echo htmlspecialchars(strtoupper($_SESSION['user']['level']) . ': ' . $_SESSION['user']['username']); ?></span>
-                <a href="logout.php" class="bg-red-500 hover:bg-red-700 px-3 py-1 rounded text-sm">
+                <a href="../auth/logout.php" class="bg-red-500 hover:bg-red-700 px-3 py-1 rounded text-sm">
                     <i class="fas fa-sign-out-alt mr-1"></i>Logout
                 </a>
             </div>
