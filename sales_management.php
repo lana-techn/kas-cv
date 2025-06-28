@@ -156,4 +156,63 @@ function addItem() {
             </div>
             <div class="mb-2">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Kuantitas</label>
-                <input type="number" name="items[${itemCount}][qty]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" oninput="
+                <input type="number" name="items[${itemCount}][qty]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" oninput="updateItemSubtotal(${itemCount})">
+            </div>
+            <div class="mb-2">
+                <label class="block text-gray-700 text-sm font-bold mb-1">Subtotal</label>
+                <input type="text" name="items[${itemCount}][subtotal]" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+            </div>
+            <button type="button" onclick="removeItem(${itemCount})" class="text-red-600 hover:text-red-900 text-sm">Hapus Item</button>
+        </div>
+    `;
+    document.getElementById('item-list').insertAdjacentHTML('beforeend', itemHtml);
+    itemCount++;
+}
+
+function removeItem(index) {
+    document.getElementById(`item-${index}`).remove();
+    updateTotal();
+}
+
+function updateItemSubtotal(index) {
+    const harga = parseFloat(document.querySelector(`input[name="items[${index}][harga_jual]"]`).value) || 0;
+    const qty = parseFloat(document.querySelector(`input[name="items[${index}][qty]"]`).value) || 0;
+    const subtotal = harga * qty;
+    document.querySelector(`input[name="items[${index}][subtotal]"]`).value = subtotal.toString();
+    updateTotal();
+}
+
+function updateTotal() {
+    let total = 0;
+    for (let i = 0; i < itemCount; i++) {
+        const subtotal = parseFloat(document.querySelector(`input[name="items[${i}][subtotal]"]`)?.value) || 0;
+        total += subtotal;
+    }
+    document.getElementById('total_jual').value = total;
+    updateKembali();
+}
+
+function updateKembali() {
+    const total = parseFloat(document.getElementById('total_jual').value) || 0;
+    const bayar = parseFloat(document.getElementById('bayar').value) || 0;
+    document.getElementById('kembali').value = (bayar - total).toString();
+}
+
+function prepareItems() {
+    // Ensure all items are included in the form submission
+}
+
+function deleteSale(id_penjualan) {
+    if (confirm('Apakah Anda yakin ingin menghapus penjualan ini?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id_penjualan" value="${id_penjualan}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+<?php require_once 'includes/footer.php'; ?>
