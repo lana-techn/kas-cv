@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'];
     $password = md5($_POST['password']); // Note: MD5 is used for simplicity; use password_hash() in production
 
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? AND password = ?");
+    $stmt = $pdo->prepare("SELECT * FROM user WHERE username = ? AND password = ?");
     $stmt->execute([$username, $password]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 

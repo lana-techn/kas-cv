@@ -9,15 +9,15 @@ if ($_SESSION['user']['level'] !== 'admin') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'add') {
-        $stmt = $pdo->prepare("INSERT INTO users (id_user, username, password, level) VALUES (?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO user (id_user, username, password, level) VALUES (?, ?, ?, ?)");
         $stmt->execute([$_POST['id_user'], $_POST['username'], md5($_POST['password']), $_POST['level']]);
     } elseif ($_POST['action'] === 'delete') {
-        $stmt = $pdo->prepare("DELETE FROM users WHERE id_user = ?");
+        $stmt = $pdo->prepare("DELETE FROM user WHERE id_user = ?");
         $stmt->execute([$_POST['id_user']]);
     }
 }
 
-$stmt = $pdo->query("SELECT * FROM users");
+$stmt = $pdo->query("SELECT * FROM user");
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <div class="flex min-h-screen">

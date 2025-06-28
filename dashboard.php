@@ -2,16 +2,16 @@
 require_once 'config/db_connect.php';
 require_once 'includes/header.php';
 
-$stmt = $pdo->query("SELECT COUNT(*) as total FROM products");
+$stmt = $pdo->query("SELECT COUNT(*) as total FROM barang");
 $totalBarang = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-$stmt = $pdo->query("SELECT SUM(total_jual) as total FROM sales");
+$stmt = $pdo->query("SELECT SUM(total_jual) as total FROM penjualan");
 $totalPenjualan = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
-$stmt = $pdo->query("SELECT SUM(total_beli) as total FROM purchases");
+$stmt = $pdo->query("SELECT SUM(total_beli) as total FROM pembelian");
 $totalPembelian = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
-$stmt = $pdo->query("SELECT SUM(total) as total FROM costs");
+$stmt = $pdo->query("SELECT SUM(total) as total FROM biaya");
 $totalBiaya = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
 $totalPengeluaran = $totalPembelian + $totalBiaya;
@@ -81,12 +81,12 @@ $saldoKas = $totalPenjualan - $totalPengeluaran;
     $salesData = array_fill(0, 12, 0);
     $purchasesData = array_fill(0, 12, 0);
 
-    $stmt = $pdo->query("SELECT MONTH(tgl_jual) as month, SUM(total_jual) as total FROM sales GROUP BY MONTH(tgl_jual)");
+    $stmt = $pdo->query("SELECT MONTH(tgl_jual) as month, SUM(total_jual) as total FROM penjualan GROUP BY MONTH(tgl_jual)");
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $salesData[$row['month'] - 1] = $row['total'];
     }
 
-    $stmt = $pdo->query("SELECT MONTH(tgl_beli) as month, SUM(total_beli) as total FROM purchases GROUP BY MONTH(tgl_beli)");
+    $stmt = $pdo->query("SELECT MONTH(tgl_beli) as month, SUM(total_beli) as total FROM pembelian GROUP BY MONTH(tgl_beli)");
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $purchasesData[$row['month'] - 1] = $row['total'];
     }
