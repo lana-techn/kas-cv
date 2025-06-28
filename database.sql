@@ -6,7 +6,7 @@ USE karya_wahana_sentosa;
 CREATE TABLE user (
     id_user VARCHAR(25) PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
-    password VARCHAR(25) NOT NULL,
+    password VARCHAR(60) NOT NULL,
     level ENUM('admin', 'pegawai', 'pemilik') NOT NULL
 );
 
@@ -142,8 +142,8 @@ CREATE TABLE kas (
 );
 
 
--- Insert default users
-INSERT INTO users (id_user, username, password, level) VALUES
+-- Insert default user
+INSERT INTO user (id_user, username, password, level) VALUES
 ('ADM001', 'admin', MD5('admin'), 'admin'),
 ('PGW001', 'pegawai', MD5('pegawai'), 'pegawai'),
 ('PMK001', 'pemilik', MD5('pemilik'), 'pemilik');
