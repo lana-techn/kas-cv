@@ -45,7 +45,7 @@ CREATE TABLE biaya (
 CREATE TABLE produksi (
     id_produksi VARCHAR(25) PRIMARY KEY,
     kd_barang VARCHAR(25) NOT NULL,
-    nama_barang VARCHAR(200) NOT NULL,
+    tgl_produksi DATE NOT NULL,
     jumlah_produksi INTEGER NOT NULL,
     FOREIGN KEY (kd_barang) REFERENCES barang(kd_barang)
 );
