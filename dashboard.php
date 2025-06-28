@@ -70,25 +70,28 @@ $saldoKas = $totalPenjualan - $totalPengeluaran;
             </div>
             <div class="bg-white p-6 rounded-lg shadow">
                 <h3 class="text-lg font-semibold mb-4">Grafik Penjualan & Pembelian</h3>
-                <canvas id="salesChart" style="height: 400px;"></canvas>
+                <div style="height:400px;">
+                    <canvas id="salesChart"></canvas>
+                </div>
             </div>
         </div>
     </main>
 </div>
+<!-- Tambahkan CDN Chart.js sebelum script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Chart.js for Sales and Purchases
     <?php
     $salesData = array_fill(0, 12, 0);
     $purchasesData = array_fill(0, 12, 0);
 
     $stmt = $pdo->query("SELECT MONTH(tgl_jual) as month, SUM(total_jual) as total FROM penjualan GROUP BY MONTH(tgl_jual)");
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $salesData[$row['month'] - 1] = $row['total'];
+        $salesData[$row['month'] - 1] = (float)$row['total'];
     }
 
     $stmt = $pdo->query("SELECT MONTH(tgl_beli) as month, SUM(total_beli) as total FROM pembelian GROUP BY MONTH(tgl_beli)");
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $purchasesData[$row['month'] - 1] = $row['total'];
+        $purchasesData[$row['month'] - 1] = (float)$row['total'];
     }
     ?>
     const ctx = document.getElementById('salesChart').getContext('2d');
@@ -96,19 +99,22 @@ $saldoKas = $totalPenjualan - $totalPengeluaran;
         type: 'bar',
         data: {
             labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            datasets: [{
-                label: 'Penjualan',
-                data: <?php echo json_encode($salesData); ?>,
-                backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                borderColor: 'rgb(59, 130, 246)',
-                borderWidth: 1
-            }, {
-                label: 'Pembelian',
-                data: <?php echo json_encode($purchasesData); ?>,
-                backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                borderColor: 'rgb(239, 68, 68)',
-                borderWidth: 1
-            }]
+            datasets: [
+                {
+                    label: 'Penjualan',
+                    data: <?php echo json_encode($salesData); ?>,
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Pembelian',
+                    data: <?php echo json_encode($purchasesData); ?>,
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                    borderColor: 'rgb(239, 68, 68)',
+                    borderWidth: 1
+                }
+            ]
         },
         options: {
             responsive: true,
