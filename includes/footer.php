@@ -1,4 +1,4 @@
-<script src="assets/js/scripts.js"></script>
+<script src="../assets/js/script.js"></script>
 <script>
 function confirmLogout() {
     if (confirm('Apakah Anda yakin ingin keluar?')) {
