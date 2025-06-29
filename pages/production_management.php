@@ -8,44 +8,77 @@ if ($_SESSION['user']['level'] !== 'admin') {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'add') {
-        $id_produksi = $_POST['id_produksi'] ?: generateId('PRD');
-        $stmt = $pdo->prepare("INSERT INTO produksi (id_produksi, kd_barang, nama_barang, jumlah_produksi) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$id_produksi, $_POST['kd_barang'], $_POST['nama_barang'], $_POST['jumlah_produksi']]);
+$message = '';
+$error = '';
 
-        foreach ($_POST['items'] as $item) {
-            $id_detproduksi = generateId('DPR');
-            $stmt = $pdo->prepare("INSERT INTO detail_produksi (id_detproduksi, id_produksi, kd_bahan, satuan, jum_bahan) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$id_detproduksi, $id_produksi, $item['kd_bahan'], $item['satuan'], $item['jum_bahan']]);
-            $stmt = $pdo->prepare("UPDATE bahan SET stok = stok - ? WHERE kd_bahan = ?");
-            $stmt->execute([$item['jum_bahan'], $item['kd_bahan']]);
-        }
-        $stmt = $pdo->prepare("UPDATE barang SET stok = stok + ? WHERE kd_barang = ?");
-        $stmt->execute([$_POST['jumlah_produksi'], $_POST['kd_barang']]);
-    } elseif ($_POST['action'] === 'delete') {
-        $stmt = $pdo->prepare("SELECT kd_barang, jumlah_produksi FROM produksi WHERE id_produksi = ?");
-        $stmt->execute([$_POST['id_produksi']]);
-        $production = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($production) {
-            $stmt = $pdo->prepare("SELECT kd_bahan, jum_bahan FROM detail_produksi WHERE id_produksi = ?");
-            $stmt->execute([$_POST['id_produksi']]);
-            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($items as $item) {
-                $stmt = $pdo->prepare("UPDATE bahan SET stok = stok + ? WHERE kd_bahan = ?");
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    try {
+        $pdo->beginTransaction();
+        
+        if ($_POST['action'] === 'add') {
+            if (empty($_POST['kd_barang']) || empty($_POST['jumlah_produksi']) || empty($_POST['items'])) {
+                throw new Exception('Semua field harus diisi dan minimal satu bahan harus dipilih');
+            }
+            
+            $id_produksi = $_POST['id_produksi'] ?: generateId('PRD');
+            $stmt = $pdo->prepare("INSERT INTO produksi (id_produksi, kd_barang, tgl_produksi, jumlah_produksi) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$id_produksi, $_POST['kd_barang'], date('Y-m-d'), $_POST['jumlah_produksi']]);
+
+            foreach ($_POST['items'] as $item) {
+                if (empty($item['kd_bahan']) || empty($item['jum_bahan'])) {
+                    continue;
+                }
+                
+                // Check if material stock is sufficient
+                $stmt = $pdo->prepare("SELECT stok FROM bahan WHERE kd_bahan = ?");
+                $stmt->execute([$item['kd_bahan']]);
+                $currentStock = $stmt->fetchColumn();
+                
+                if ($currentStock < $item['jum_bahan']) {
+                    throw new Exception("Stok bahan {$item['kd_bahan']} tidak mencukupi");
+                }
+                
+                $id_detproduksi = generateId('DPR');
+                $stmt = $pdo->prepare("INSERT INTO detail_produksi (id_detproduksi, id_produksi, kd_bahan, satuan, jum_bahan) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$id_detproduksi, $id_produksi, $item['kd_bahan'], $item['satuan'], $item['jum_bahan']]);
+                $stmt = $pdo->prepare("UPDATE bahan SET stok = stok - ? WHERE kd_bahan = ?");
                 $stmt->execute([$item['jum_bahan'], $item['kd_bahan']]);
             }
-            $stmt = $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?");
-            $stmt->execute([$production['jumlah_produksi'], $production['kd_barang']]);
-            $stmt = $pdo->prepare("DELETE FROM detail_produksi WHERE id_produksi = ?");
+            $stmt = $pdo->prepare("UPDATE barang SET stok = stok + ? WHERE kd_barang = ?");
+            $stmt->execute([$_POST['jumlah_produksi'], $_POST['kd_barang']]);
+            
+            $pdo->commit();
+            $message = 'Produksi berhasil ditambahkan';
+        } elseif ($_POST['action'] === 'delete') {
+            $stmt = $pdo->prepare("SELECT kd_barang, jumlah_produksi FROM produksi WHERE id_produksi = ?");
             $stmt->execute([$_POST['id_produksi']]);
-            $stmt = $pdo->prepare("DELETE FROM produksi WHERE id_produksi = ?");
-            $stmt->execute([$_POST['id_produksi']]);
+            $production = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($production) {
+                $stmt = $pdo->prepare("SELECT kd_bahan, jum_bahan FROM detail_produksi WHERE id_produksi = ?");
+                $stmt->execute([$_POST['id_produksi']]);
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($items as $item) {
+                    $stmt = $pdo->prepare("UPDATE bahan SET stok = stok + ? WHERE kd_bahan = ?");
+                    $stmt->execute([$item['jum_bahan'], $item['kd_bahan']]);
+                }
+                $stmt = $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?");
+                $stmt->execute([$production['jumlah_produksi'], $production['kd_barang']]);
+                $stmt = $pdo->prepare("DELETE FROM detail_produksi WHERE id_produksi = ?");
+                $stmt->execute([$_POST['id_produksi']]);
+                $stmt = $pdo->prepare("DELETE FROM produksi WHERE id_produksi = ?");
+                $stmt->execute([$_POST['id_produksi']]);
+                
+                $pdo->commit();
+                $message = 'Produksi berhasil dihapus';
+            }
         }
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $error = $e->getMessage();
     }
 }
 
-$stmt = $pdo->query("SELECT p.*, b.nama_barang AS product_name FROM produksi p JOIN barang b ON p.kd_barang = b.kd_barang");
+$stmt = $pdo->query("SELECT p.*, b.nama_barang AS product_name FROM produksi p JOIN barang b ON p.kd_barang = b.kd_barang ORDER BY p.tgl_produksi DESC");
 $productions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("SELECT kd_barang, nama_barang FROM barang");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -55,6 +88,25 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="flex min-h-screen">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
+        <!-- Notifications -->
+        <?php if ($message): ?>
+            <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span><?php echo htmlspecialchars($message); ?></span>
+                </div>
+            </div>
+        <?php endif; ?>
+        
+        <?php if ($error): ?>
+            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <span><?php echo htmlspecialchars($error); ?></span>
+                </div>
+            </div>
+        <?php endif; ?>
+        
         <div id="productionManagement" class="section active">
             <h2 class="text-2xl font-bold mb-6">Manajemen Produksi</h2>
             <div class="bg-white rounded-lg shadow p-6">
@@ -69,6 +121,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID Produksi</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode Barang</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Barang</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah Produksi</th>
@@ -79,6 +132,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <?php foreach ($productions as $production): ?>
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($production['id_produksi']); ?></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($production['tgl_produksi']); ?></td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($production['kd_barang']); ?></td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($production['product_name']); ?></td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($production['jumlah_produksi']); ?></td>
@@ -119,18 +173,14 @@ function showAddProductionForm() {
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">Produk</label>
-                <select name="kd_barang" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" onchange="updateProductName(this)">
+                <select name="kd_barang" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                     <option value="">Pilih Produk</option>
                     <?php foreach ($products as $product): ?>
-                        <option value="<?php echo $product['kd_barang']; ?>" data-name="<?php echo htmlspecialchars($product['nama_barang']); ?>">
+                        <option value="<?php echo $product['kd_barang']; ?>">
                             <?php echo htmlspecialchars($product['nama_barang']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Nama Barang</label>
-                <input type="text" name="nama_barang" id="nama_barang" required readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">Jumlah Produksi</label>
@@ -189,10 +239,6 @@ function removeItem(index) {
     document.getElementById(`item-${index}`).remove();
 }
 
-function updateProductName(select) {
-    const selectedOption = select.options[select.selectedIndex];
-    document.getElementById('nama_barang').value = selectedOption.dataset.name || '';
-}
 
 function prepareItems() {
     // Ensure all items are included in the form submission

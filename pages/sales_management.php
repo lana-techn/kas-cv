@@ -8,35 +8,72 @@ if (!in_array($_SESSION['user']['level'], ['admin', 'pegawai'])) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'add') {
-        $id_penjualan = $_POST['id_penjualan'] ?: generateId('JUL');
-        $stmt = $pdo->prepare("INSERT INTO penjualan (id_penjualan, tgl_jual, total_jual, bayar, kembali) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$id_penjualan, $_POST['tgl_jual'], $_POST['total_jual'], $_POST['bayar'], $_POST['kembali']]);
+$message = '';
+$error = '';
 
-        foreach ($_POST['items'] as $item) {
-            $id_detail_jual = generateId('DJL');
-            $stmt = $pdo->prepare("INSERT INTO detail_penjualan (id_detail_jual, id_penjualan, kd_barang, harga_jual, qty, subtotal) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$id_detail_jual, $id_penjualan, $item['kd_barang'], $item['harga_jual'], $item['qty'], $item['subtotal']]);
-            $stmt = $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?");
-            $stmt->execute([$item['qty'], $item['kd_barang']]);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    try {
+        $pdo->beginTransaction();
+        
+        if ($_POST['action'] === 'add') {
+            if (empty($_POST['tgl_jual']) || empty($_POST['total_jual']) || empty($_POST['bayar']) || empty($_POST['items'])) {
+                throw new Exception('Semua field harus diisi dan minimal satu item harus dipilih');
+            }
+            
+            if ($_POST['bayar'] < $_POST['total_jual']) {
+                throw new Exception('Jumlah bayar tidak boleh kurang dari total');
+            }
+            
+            $id_penjualan = $_POST['id_penjualan'] ?: generateId('JUL');
+            $stmt = $pdo->prepare("INSERT INTO penjualan (id_penjualan, tgl_jual, total_jual, bayar, kembali) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$id_penjualan, $_POST['tgl_jual'], $_POST['total_jual'], $_POST['bayar'], $_POST['kembali']]);
+
+            foreach ($_POST['items'] as $item) {
+                if (empty($item['kd_barang']) || empty($item['qty'])) {
+                    continue;
+                }
+                
+                // Check stock availability
+                $stmt = $pdo->prepare("SELECT stok FROM barang WHERE kd_barang = ?");
+                $stmt->execute([$item['kd_barang']]);
+                $currentStock = $stmt->fetchColumn();
+                
+                if ($currentStock < $item['qty']) {
+                    throw new Exception("Stok barang {$item['kd_barang']} tidak mencukupi");
+                }
+                
+                $id_detail_jual = generateId('DJL');
+                $stmt = $pdo->prepare("INSERT INTO detail_penjualan (id_detail_jual, id_penjualan, kd_barang, harga_jual, qty, subtotal) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$id_detail_jual, $id_penjualan, $item['kd_barang'], $item['harga_jual'], $item['qty'], $item['subtotal']]);
+                $stmt = $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?");
+                $stmt->execute([$item['qty'], $item['kd_barang']]);
+            }
+            $stmt = $pdo->prepare("INSERT INTO penerimaan_kas (id_penerimaan_kas, id_penjualan, tgl_terima_kas, uraian, total) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([generateId('PKS'), $id_penjualan, $_POST['tgl_jual'], 'Penjualan Produk', $_POST['total_jual']]);
+            
+            $pdo->commit();
+            $message = 'Penjualan berhasil disimpan';
+        } elseif ($_POST['action'] === 'delete') {
+            $stmt = $pdo->prepare("SELECT kd_barang, qty FROM detail_penjualan WHERE id_penjualan = ?");
+            $stmt->execute([$_POST['id_penjualan']]);
+            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($items as $item) {
+                $stmt = $pdo->prepare("UPDATE barang SET stok = stok + ? WHERE kd_barang = ?");
+                $stmt->execute([$item['qty'], $item['kd_barang']]);
+            }
+            $stmt = $pdo->prepare("DELETE FROM penerimaan_kas WHERE id_penjualan = ?");
+            $stmt->execute([$_POST['id_penjualan']]);
+            $stmt = $pdo->prepare("DELETE FROM detail_penjualan WHERE id_penjualan = ?");
+            $stmt->execute([$_POST['id_penjualan']]);
+            $stmt = $pdo->prepare("DELETE FROM penjualan WHERE id_penjualan = ?");
+            $stmt->execute([$_POST['id_penjualan']]);
+            
+            $pdo->commit();
+            $message = 'Penjualan berhasil dihapus';
         }
-        $stmt = $pdo->prepare("INSERT INTO penerimaan_kas (id_penerimaan_kas, id_penjualan, tgl_terima_kas, uraian, total) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([generateId('PKS'), $id_penjualan, $_POST['tgl_jual'], 'Penjualan Produk', $_POST['total_jual']]);
-    } elseif ($_POST['action'] === 'delete') {
-        $stmt = $pdo->prepare("SELECT kd_barang, qty FROM detail_penjualan WHERE id_penjualan = ?");
-        $stmt->execute([$_POST['id_penjualan']]);
-        $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($items as $item) {
-            $stmt = $pdo->prepare("UPDATE barang SET stok = stok + ? WHERE kd_barang = ?");
-            $stmt->execute([$item['qty'], $item['kd_barang']]);
-        }
-        $stmt = $pdo->prepare("DELETE FROM penerimaan_kas WHERE id_penjualan = ?");
-        $stmt->execute([$_POST['id_penjualan']]);
-        $stmt = $pdo->prepare("DELETE FROM detail_penjualan WHERE id_penjualan = ?");
-        $stmt->execute([$_POST['id_penjualan']]);
-        $stmt = $pdo->prepare("DELETE FROM penjualan WHERE id_penjualan = ?");
-        $stmt->execute([$_POST['id_penjualan']]);
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $error = $e->getMessage();
     }
 }
 
@@ -48,6 +85,25 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="flex min-h-screen">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
+        <!-- Notifications -->
+        <?php if ($message): ?>
+            <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span><?php echo htmlspecialchars($message); ?></span>
+                </div>
+            </div>
+        <?php endif; ?>
+        
+        <?php if ($error): ?>
+            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <span><?php echo htmlspecialchars($error); ?></span>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div id="salesManagement" class="section active">
             <h2 class="text-2xl font-bold mb-6">Manajemen Penjualan</h2>
             <div class="bg-white rounded-lg shadow p-6">
