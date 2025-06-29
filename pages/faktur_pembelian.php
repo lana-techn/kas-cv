@@ -1,116 +1,150 @@
 <?php
-require_once '../config/db_connect.php'; //
-require_once '../includes/function.php'; //
-require_once '../includes/header.php'; //
+require_once '../config/db_connect.php';
+require_once '../includes/function.php';
 
 if (!isset($_GET['id'])) {
-    echo "<div class='p-6 bg-red-100 border-l-4 border-red-500 text-red-700'>ID pembelian tidak ditemukan.</div>";
-    require_once '../includes/footer.php';
+    header('Location: purchase_management.php');
     exit;
 }
 
 $id_pembelian = $_GET['id'];
 
-// Ambil data pembelian utama beserta informasi supplier
-$stmt = $pdo->prepare("SELECT p.*, s.nama_supplier 
-                      FROM pembelian p 
-                      LEFT JOIN supplier s ON p.id_supplier = s.id_supplier 
-                      WHERE p.id_pembelian = ?");
-$stmt->execute([$id_pembelian]);
-$pembelian = $stmt->fetch(PDO::FETCH_ASSOC);
+// Ambil data utama pembelian
+$stmt_main = $pdo->prepare("
+    SELECT p.*, s.nama_supplier, s.alamat, s.no_telpon 
+    FROM pembelian p 
+    JOIN supplier s ON p.id_supplier = s.id_supplier 
+    WHERE p.id_pembelian = ?
+");
+$stmt_main->execute([$id_pembelian]);
+$purchase = $stmt_main->fetch(PDO::FETCH_ASSOC);
 
-// Jika pembelian tidak ditemukan
-if (!$pembelian) {
-    echo "<div class='p-6 bg-red-100 border-l-4 border-red-500 text-red-700'>Data pembelian dengan ID: " . htmlspecialchars($id_pembelian) . " tidak ditemukan.</div>";
-    require_once '../includes/footer.php';
-    exit;
+if (!$purchase) {
+    die("Faktur tidak ditemukan.");
 }
 
 // Ambil detail item pembelian
-$stmt_detail = $pdo->prepare("
+$stmt_items = $pdo->prepare("
     SELECT dp.*, b.nama_bahan 
-    FROM detail_pembelian dp
-    JOIN bahan b ON dp.kd_bahan = b.kd_bahan
+    FROM detail_pembelian dp 
+    JOIN bahan b ON dp.kd_bahan = b.kd_bahan 
     WHERE dp.id_pembelian = ?
-"); //
-$stmt_detail->execute([$id_pembelian]);
-$detail_items = $stmt_detail->fetchAll(PDO::FETCH_ASSOC);
+");
+$stmt_items->execute([$id_pembelian]);
+$items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
 ?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faktur Pembelian #<?php echo htmlspecialchars($purchase['id_pembelian']); ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #invoice-box, #invoice-box * {
+                visibility: visible;
+            }
+            #invoice-box {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4 md:p-8">
+        <div class="no-print mb-6 flex justify-between items-center">
+            <a href="purchase_management.php" class="text-blue-600 hover:underline">
+                <i class="fas fa-arrow-left mr-2"></i>Kembali ke Manajemen Pembelian
+            </a>
+            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm">
+                <i class="fas fa-print mr-2"></i>Cetak Faktur
+            </button>
+        </div>
 
-<div class="flex min-h-screen">
-    <?php require_once '../includes/sidebar.php'; ?>
-    <main class="flex-1 p-6">
-        <div class="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
-            <div class="flex justify-between items-center mb-8">
+        <div id="invoice-box" class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8 md:p-12">
+            <header class="flex justify-between items-center pb-8 border-b">
                 <div>
-                    <h1 class="text-2xl font-bold">FAKTUR pembelian</h1>
-                    <p>CV. Karya Wahana Sentosa</p>
+                    <h1 class="text-3xl font-bold text-gray-800">FAKTUR PEMBELIAN</h1>
+                    <p class="text-gray-500">ID: #<?php echo htmlspecialchars($purchase['id_pembelian']); ?></p>
                 </div>
                 <div class="text-right">
-                    <p class="font-semibold">ID pembelian: <?php echo htmlspecialchars($pembelian['id_pembelian']); ?></p>
-                    <p>Tanggal: <?php echo date('d/m/Y', strtotime($pembelian['tgl_beli'])); ?></p>
-                    <p>Supplier: <?php echo htmlspecialchars($pembelian['nama_supplier'] ?? 'Tidak ada'); ?></p>
+                    <h2 class="text-xl font-semibold text-gray-700">CV. Karya Wahana Sentosa</h2>
+                    <p class="text-gray-500 text-sm">Perusahaan Manufaktur Tas</p>
                 </div>
-            </div>
+            </header>
 
-            <div class="border-b mb-8"></div>
+            <section class="grid grid-cols-2 gap-8 mt-8">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">Ditagih Kepada</h3>
+                    <p class="text-lg font-bold text-gray-800">CV. Karya Wahana Sentosa</p>
+                    <p class="text-gray-600">Jl. Industri No. 123, Kota Industri</p>
+                </div>
+                <div class="text-right">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">Supplier</h3>
+                    <p class="text-lg font-bold text-gray-800"><?php echo htmlspecialchars($purchase['nama_supplier']); ?></p>
+                    <p class="text-gray-600"><?php echo htmlspecialchars($purchase['alamat']); ?></p>
+                    <p class="text-gray-600">Telp: <?php echo htmlspecialchars($purchase['no_telpon']); ?></p>
+                    <p class="text-gray-600 mt-2">Tanggal Transaksi: <span class="font-semibold"><?php echo date('d F Y', strtotime($purchase['tgl_beli'])); ?></span></p>
+                </div>
+            </section>
 
-            <h3 class="text-lg font-semibold mb-4">Detail Transaksi:</h3>
-            <?php if (!empty($detail_items)): ?>
-            <div class="overflow-x-auto">
-                <table class="min-w-full table-auto mb-8">
-                    <thead class="bg-gray-100">
+            <section class="mt-10">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">Detail Pembelian</h3>
+                <table class="w-full">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-4 py-2 text-left">No.</th>
-                            <th class="px-4 py-2 text-left">Nama Barang</th>
-                            <th class="px-4 py-2 text-right">Harga Satuan</th>
-                            <th class="px-4 py-2 text-center">Jumlah</th>
-                            <th class="px-4 py-2 text-right">Subtotal</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Bahan</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Beli</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php foreach ($detail_items as $index => $item): ?>
-                            <tr>
-                                <td class="border-b px-4 py-2"><?php echo $index + 1; ?></td>
-                                <td class="border-b px-4 py-2"><?php echo htmlspecialchars($item['nama_bahan']); ?></td>
-                                <td class="border-b px-4 py-2 text-right"><?php echo formatCurrency($item['harga_beli']); ?></td>
-                                <td class="border-b px-4 py-2 text-center"><?php echo htmlspecialchars($item['qty']); ?></td>
-                                <td class="border-b px-4 py-2 text-right"><?php echo formatCurrency($item['subtotal']); ?></td>
-                            </tr>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <?php foreach ($items as $item): ?>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($item['nama_bahan']); ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right"><?php echo formatCurrency($item['harga_beli']); ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center"><?php echo $item['qty']; ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-right font-semibold"><?php echo formatCurrency($item['subtotal']); ?></td>
+                        </tr>
                         <?php endforeach; ?>
                     </tbody>
-                    <tfoot class="font-semibold">
-                        <tr>
-                            <td colspan="4" class="px-4 py-2 text-right">Total</td>
-                            <td class="px-4 py-2 text-right"><?php echo formatCurrency($pembelian['total_beli']); ?></td>
-                        </tr>
-                        <tr>
-                            <td colspan="4" class="px-4 py-2 text-right">Bayar</td>
-                            <td class="px-4 py-2 text-right"><?php echo formatCurrency($pembelian['bayar']); ?></td>
-                        </tr>
-                        <tr>
-                            <td colspan="4" class="px-4 py-2 text-right">Kembali</td>
-                            <td class="px-4 py-2 text-right"><?php echo formatCurrency($pembelian['kembali']); ?></td>
-                        </tr>
-                    </tfoot>
                 </table>
-            </div>
-            <?php else: ?>
-            <div class="p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
-                Tidak ada detail barang untuk pembelian ini.
-            </div>
-            <?php endif; ?>
+            </section>
 
-            <div class="flex justify-end space-x-2 mt-8">
-                <button onclick="window.print()" class="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded">
-                    <i class="fas fa-print mr-2"></i>Cetak
-                </button>
-                <a href="../utils/export_faktur.php?type=pembelian&id=<?php echo $id_pembelian; ?>" class="bg-green-500 hover:bg-green-700 text-white px-4 py-2 rounded">
-                    <i class="fas fa-file-excel mr-2"></i>Ekspor ke Excel
-                </a>
-            </div>
+            <section class="mt-8 flex justify-end">
+                <div class="w-full max-w-sm">
+                    <div class="flex justify-between py-2 border-b">
+                        <span class="text-gray-600">Total</span>
+                        <span class="font-bold text-gray-800"><?php echo formatCurrency($purchase['total_beli']); ?></span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b">
+                        <span class="text-gray-600">Bayar</span>
+                        <span class="font-bold text-gray-800"><?php echo formatCurrency($purchase['bayar']); ?></span>
+                    </div>
+                    <div class="flex justify-between py-2 bg-gray-100 px-4 rounded-b-lg">
+                        <span class="font-bold text-gray-800 text-lg">Kembali</span>
+                        <span class="font-bold text-blue-600 text-lg"><?php echo formatCurrency($purchase['kembali']); ?></span>
+                    </div>
+                </div>
+            </section>
+            
+            <footer class="mt-12 pt-8 border-t text-center text-gray-500 text-sm">
+                <p>Terima kasih atas kerja samanya.</p>
+                <p>CV. Karya Wahana Sentosa &copy; <?php echo date('Y'); ?></p>
+            </footer>
         </div>
-    </main>
-</div>
-
-<?php require_once '../includes/footer.php'; ?>
+    </div>
+</body>
+</html>
