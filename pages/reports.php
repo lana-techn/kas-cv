@@ -52,43 +52,45 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
     <main class="flex-1 p-6">
         <div id="reports" class="section active">
             <h2 class="text-2xl font-bold mb-6">Laporan</h2>
-
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg shadow-lg card text-white">
-                    <div class="flex items-center justify-between">
+
+                <div class="bg-white border border-gray-200 rounded-xl shadow-md p-6 card hover:shadow-xl transition-shadow duration-300">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <h3 class="text-lg font-semibold mb-2 opacity-90">Total Seluruh Penjualan</h3>
-                            <p class="text-3xl font-bold"><?php echo formatCurrency($total_penjualan); ?></p>
+                            <h3 class="font-semibold text-lg text-gray-500">Total Penjualan</h3>
+                            <p class="text-2xl font-bold text-gray-800 mt-2"><?php echo formatCurrency($total_penjualan); ?></p>
                         </div>
-                        <div class="text-4xl opacity-75">
-                            <i class="fas fa-cash-register"></i>
+                        <div class="p-4 bg-blue-100 rounded-lg">
+                            <i class="fas fa-shopping-cart text-3xl text-blue-500"></i>
                         </div>
                     </div>
                 </div>
-                <div class="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-lg shadow-lg card text-white">
-                    <div class="flex items-center justify-between">
+
+                <div class="bg-white border border-gray-200 rounded-xl shadow-md p-6 card hover:shadow-xl transition-shadow duration-300">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <h3 class="text-lg font-semibold mb-2 opacity-90">Total Seluruh Pengeluaran</h3>
-                            <p class="text-3xl font-bold"><?php echo formatCurrency($total_pembelian + $total_biaya); ?></p>
+                            <h3 class="font-semibold text-lg text-gray-500">Total Pengeluaran</h3>
+                            <p class="text-2xl font-bold text-gray-800 mt-2"><?php echo formatCurrency($total_pembelian + $total_biaya); ?></p>
                         </div>
-                        <div class="text-4xl opacity-75">
-                            <i class="fas fa-credit-card"></i>
+                        <div class="p-4 bg-red-100 rounded-lg">
+                            <i class="fas fa-money-bill-wave text-3xl text-red-500"></i>
                         </div>
                     </div>
                 </div>
-                <div class="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-lg shadow-lg card text-white">
-                    <div class="flex items-center justify-between">
+
+                <div class="bg-white border border-gray-200 rounded-xl shadow-md p-6 card hover:shadow-xl transition-shadow duration-300">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <h3 class="text-lg font-semibold mb-2 opacity-90">Saldo Kas Keseluruhan</h3>
-                            <p class="text-3xl font-bold"><?php echo formatCurrency($saldo_kas); ?></p>
+                            <h3 class="font-semibold text-lg text-gray-500">Saldo Kas</h3>
+                            <p class="text-2xl font-bold text-gray-800 mt-2"><?php echo formatCurrency($saldo_kas); ?></p>
                         </div>
-                        <div class="text-4xl opacity-75">
-                            <i class="fas fa-wallet"></i>
+                        <div class="p-4 bg-green-100 rounded-lg">
+                            <i class="fas fa-wallet text-3xl text-green-500"></i>
                         </div>
                     </div>
                 </div>
             </div>
-
+            
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow-lg p-6 card">
                     <h3 class="text-lg font-semibold mb-4 flex items-center">
