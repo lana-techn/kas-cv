@@ -125,7 +125,12 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($purchase['nama_supplier']); ?></td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo formatCurrency($purchase['total_beli']); ?></td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <button onclick="deletePurchase('<?php echo $purchase['id_pembelian']; ?>')" class="text-red-600 hover:text-red-900">Hapus</button>
+                                        <a href="faktur_pembelian.php?id=<?php echo $purchase['id_pembelian']; ?>" class="text-blue-600 hover:text-blue-900 mr-3">
+                                            <i class="fas fa-file-invoice mr-1"></i>Faktur
+                                        </a>
+                                        <button onclick="deletePurchase('<?php echo $purchase['id_pembelian']; ?>')" class="text-red-600 hover:text-red-900">
+                                            <i class="fas fa-trash mr-1"></i>Hapus
+                                        </button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
