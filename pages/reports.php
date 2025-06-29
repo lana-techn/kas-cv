@@ -3,12 +3,29 @@ require_once '../config/db_connect.php';
 require_once '../includes/function.php';
 require_once '../includes/header.php';
 
-// Menentukan variabel untuk filter, dengan nilai default jika tidak ada POST request
-$report_type = $_POST['report_type'] ?? 'penjualan'; // Default report
-$start_date = $_POST['start_date'] ?? date('Y-m-01'); // Default: awal bulan ini
-$end_date = $_POST['end_date'] ?? date('Y-m-t'); // Default: akhir bulan ini
+// --- PERBAIKAN 1: Logika dan Batasan Tanggal yang Ditingkatkan ---
+date_default_timezone_set('Asia/Jakarta');
+$today = date('Y-m-d'); // Mendapatkan tanggal hari ini untuk batasan
 
-// Query untuk ringkasan di bagian atas tetap sama
+// Nilai default yang lebih dinamis: 30 hari terakhir dari hari ini
+$default_start_date = date('Y-m-d', strtotime('-29 days'));
+$default_end_date = $today;
+
+$report_type = $_POST['report_type'] ?? 'penjualan';
+$start_date = $_POST['start_date'] ?? $default_start_date;
+$end_date = $_POST['end_date'] ?? $default_end_date;
+
+// Validasi di sisi server untuk memastikan tanggal tidak melebihi hari ini
+if ($end_date > $today) {
+    $end_date = $today;
+}
+// Memastikan tanggal mulai tidak lebih besar dari tanggal akhir
+if ($start_date > $end_date) {
+    $start_date = $end_date;
+}
+// --- AKHIR PERBAIKAN 1 ---
+
+// Query untuk ringkasan di bagian atas (TETAP SAMA)
 $stmt_total_penjualan = $pdo->query("SELECT SUM(total_jual) as total FROM penjualan");
 $total_penjualan = $stmt_total_penjualan->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
@@ -20,7 +37,7 @@ $total_biaya = $stmt_total_biaya->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
 $saldo_kas = $total_penjualan - ($total_pembelian + $total_biaya);
 
-// Get filtered data for charts
+// Get filtered data for charts (TETAP SAMA)
 $stmt_filtered_penjualan = $pdo->prepare("SELECT SUM(total_jual) as total FROM penjualan WHERE tgl_jual BETWEEN ? AND ?");
 $stmt_filtered_penjualan->execute([$start_date, $end_date]);
 $filtered_penjualan = $stmt_filtered_penjualan->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
@@ -36,9 +53,8 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
         <div id="reports" class="section active">
             <h2 class="text-2xl font-bold mb-6">Laporan</h2>
 
-            <!-- Enhanced Summary Cards dengan Gradients dan Icons -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg shadow-lg card text-white">
+                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg shadow-lg card text-white">
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="text-lg font-semibold mb-2 opacity-90">Total Seluruh Penjualan</h3>
@@ -73,7 +89,6 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
                 </div>
             </div>
 
-            <!-- Charts Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow-lg p-6 card">
                     <h3 class="text-lg font-semibold mb-4 flex items-center">
@@ -93,7 +108,6 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
                 </div>
             </div>
 
-            <!-- Quick Actions Section untuk Faktur -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8 card">
                 <h3 class="text-lg font-semibold mb-4 flex items-center">
                     <i class="fas fa-file-invoice mr-2 text-purple-500"></i>Akses Cepat Faktur
@@ -148,7 +162,7 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
                     </div>
                 </div>
             </div>
-
+            
             <div class="bg-white rounded-lg shadow p-6 mb-8">
                 <h3 class="text-lg font-semibold mb-4">Filter Laporan Periodik</h3>
                 <form method="POST" action="reports.php">
@@ -165,11 +179,11 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Tanggal Mulai</label>
-                            <input type="date" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <input type="date" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>" max="<?php echo $today; ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Tanggal Akhir</label>
-                            <input type="date" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <input type="date" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>" max="<?php echo $today; ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         </div>
                         <div>
                             <button type="submit" class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-sm">
@@ -191,47 +205,46 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
                 </div>
                 <div class="overflow-x-auto">
                     <?php
-                    // Logika untuk menampilkan tabel berdasarkan jenis laporan yang dipilih
+                    // Logika untuk menampilkan tabel (TETAP SAMA)
                     $total = 0;
                     $query = "";
                     $params = [$start_date, $end_date];
 
-                    // Tentukan query dan header tabel berdasarkan jenis laporan
                     switch ($report_type) {
                         case 'penjualan':
                             $query = "SELECT id_penjualan, tgl_jual, total_jual FROM penjualan WHERE tgl_jual BETWEEN ? AND ? ORDER BY tgl_jual";
                             $headers = ['ID Penjualan', 'Tanggal', 'Total'];
                             $columns = ['id_penjualan', 'tgl_jual', 'total_jual'];
+                            $date_column = 'tgl_jual'; // Menandai kolom tanggal
                             $total_column = 'total_jual';
                             break;
                         case 'pembelian':
-                            $query = "SELECT p.id_pembelian, p.tgl_beli, s.nama_supplier, p.total_beli 
-                                      FROM pembelian p JOIN supplier s ON p.id_supplier = s.id_supplier
-                                      WHERE p.tgl_beli BETWEEN ? AND ? ORDER BY p.tgl_beli";
+                            $query = "SELECT p.id_pembelian, p.tgl_beli, s.nama_supplier, p.total_beli FROM pembelian p JOIN supplier s ON p.id_supplier = s.id_supplier WHERE p.tgl_beli BETWEEN ? AND ? ORDER BY p.tgl_beli";
                             $headers = ['ID Pembelian', 'Tanggal', 'Supplier', 'Total'];
                             $columns = ['id_pembelian', 'tgl_beli', 'nama_supplier', 'total_beli'];
+                            $date_column = 'tgl_beli'; // Menandai kolom tanggal
                             $total_column = 'total_beli';
                             break;
                         case 'penerimaan_kas':
                             $query = "SELECT id_penerimaan_kas, tgl_terima_kas, uraian, total FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ? ORDER BY tgl_terima_kas";
                             $headers = ['ID Penerimaan', 'Tanggal', 'Uraian', 'Total'];
                             $columns = ['id_penerimaan_kas', 'tgl_terima_kas', 'uraian', 'total'];
+                            $date_column = 'tgl_terima_kas'; // Menandai kolom tanggal
                             $total_column = 'total';
                             break;
                         case 'pengeluaran_kas':
-                            $query = "SELECT id_pengeluaran_kas, tgl_pengeluaran_kas, uraian, total FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ? ORDER BY tgl_pengeluaran_kas";
-                            $headers = ['ID Pengeluaran', 'Tanggal', 'Uraian', 'Total'];
-                            $columns = ['id_pengeluaran_kas', 'tgl_pengeluaran_kas', 'uraian', 'total'];
-                            $total_column = 'total';
-                            break;
+                             $query = "SELECT id_pengeluaran_kas, tgl_pengeluaran_kas, uraian, total FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ? ORDER BY tgl_pengeluaran_kas";
+                             $headers = ['ID Pengeluaran', 'Tanggal', 'Uraian', 'Total'];
+                             $columns = ['id_pengeluaran_kas', 'tgl_pengeluaran_kas', 'uraian', 'total'];
+                             $date_column = 'tgl_pengeluaran_kas'; // Menandai kolom tanggal
+                             $total_column = 'total';
+                             break;
                         case 'buku_besar':
-                            $query = "(SELECT tgl_terima_kas as tanggal, uraian, total as debit, 0 as kredit FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ?)
-                                      UNION ALL
-                                      (SELECT tgl_pengeluaran_kas as tanggal, uraian, 0 as debit, total as kredit FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ?)
-                                      ORDER BY tanggal";
+                            $query = "(SELECT tgl_terima_kas as tanggal, uraian, total as debit, 0 as kredit FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ?) UNION ALL (SELECT tgl_pengeluaran_kas as tanggal, uraian, 0 as debit, total as kredit FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ?) ORDER BY tanggal";
                             $params = [$start_date, $end_date, $start_date, $end_date];
                             $headers = ['Tanggal', 'Uraian', 'Debit', 'Kredit'];
                             $columns = ['tanggal', 'uraian', 'debit', 'kredit'];
+                            $date_column = 'tanggal'; // Menandai kolom tanggal
                             break;
                     }
                     
@@ -239,7 +252,6 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
                     $stmt->execute($params);
                     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                    // Render a Tabela
                     echo '<table class="min-w-full table-auto">';
                     echo '<thead class="bg-gray-50"><tr>';
                     foreach ($headers as $header) {
@@ -257,7 +269,17 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
                             echo '<tr>';
                             foreach ($columns as $col) {
                                 $is_currency = in_array($col, ['total_jual', 'total_beli', 'total', 'debit', 'kredit']);
-                                $value = $is_currency ? formatCurrency($row[$col]) : htmlspecialchars($row[$col]);
+                                $is_date = isset($date_column) && $col == $date_column;
+                                
+                                // --- PERBAIKAN 3: Menerapkan format tanggal yang lebih baik ---
+                                if ($is_date) {
+                                    $value = date('d F Y', strtotime($row[$col])); // Format: 29 June 2025
+                                } elseif ($is_currency) {
+                                    $value = formatCurrency($row[$col]);
+                                } else {
+                                    $value = htmlspecialchars($row[$col]);
+                                }
+                                
                                 $align = $is_currency ? 'text-right' : 'text-left';
                                 echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 $align'>$value</td>";
                             }
@@ -274,18 +296,13 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
 
                     echo '</tbody>';
 
-                    // Tampilkan total di footer tabel
                     if (!empty($data)) {
                         echo '<tfoot class="bg-gray-50 font-bold">';
                         if ($report_type == 'buku_besar') {
-                            echo "<tr><td colspan='2' class='px-6 py-3 text-right'>Total</td>
-                                     <td class='px-6 py-3 text-right'>" . formatCurrency($total_debit) . "</td>
-                                     <td class='px-6 py-3 text-right'>" . formatCurrency($total_kredit) . "</td></tr>";
-                            echo "<tr><td colspan='3' class='px-6 py-3 text-right'>Saldo Akhir</td>
-                                     <td class='px-6 py-3 text-right'>" . formatCurrency($total_debit - $total_kredit) . "</td></tr>";
+                            echo "<tr><td colspan='2' class='px-6 py-3 text-right'>Total</td><td class='px-6 py-3 text-right'>" . formatCurrency($total_debit) . "</td><td class='px-6 py-3 text-right'>" . formatCurrency($total_kredit) . "</td></tr>";
+                            echo "<tr><td colspan='3' class='px-6 py-3 text-right'>Saldo Akhir</td><td class='px-6 py-3 text-right'>" . formatCurrency($total_debit - $total_kredit) . "</td></tr>";
                         } else {
-                            echo "<tr><td colspan='" . (count($headers) - 1) . "' class='px-6 py-3 text-right'>Total</td>
-                                     <td class='px-6 py-3 text-right'>" . formatCurrency($total) . "</td></tr>";
+                            echo "<tr><td colspan='" . (count($headers) - 1) . "' class='px-6 py-3 text-right'>Total</td><td class='px-6 py-3 text-right'>" . formatCurrency($total) . "</td></tr>";
                         }
                         echo '</tfoot>';
                     }
@@ -298,11 +315,9 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
     </main>
 </div>
 
-<!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-// Animasi untuk cards saat loading
+// Semua JavaScript Anda untuk animasi, chart, dan hover effects tetap utuh.
 document.addEventListener('DOMContentLoaded', function() {
     const cards = document.querySelectorAll('.card');
     cards.forEach((card, index) => {
@@ -319,22 +334,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Pie Chart untuk Perbandingan Penjualan vs Pembelian
 const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
-const comparisonChart = new Chart(comparisonCtx, {
+new Chart(comparisonCtx, {
     type: 'doughnut',
     data: {
         labels: ['Penjualan', 'Pembelian'],
         datasets: [{
             data: [<?php echo $total_penjualan; ?>, <?php echo $total_pembelian; ?>],
-            backgroundColor: [
-                'rgba(34, 197, 94, 0.8)',
-                'rgba(239, 68, 68, 0.8)'
-            ],
-            borderColor: [
-                'rgba(34, 197, 94, 1)',
-                'rgba(239, 68, 68, 1)'
-            ],
+            backgroundColor: ['rgba(34, 197, 94, 0.8)','rgba(239, 68, 68, 0.8)'],
+            borderColor: ['rgba(34, 197, 94, 1)','rgba(239, 68, 68, 1)'],
             borderWidth: 2
         }]
     },
@@ -342,36 +350,22 @@ const comparisonChart = new Chart(comparisonCtx, {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    padding: 20,
-                    usePointStyle: true
-                }
-            },
+            legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
             tooltip: {
                 callbacks: {
                     label: function(context) {
                         const label = context.label || '';
-                        const value = new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR'
-                        }).format(context.parsed);
+                        const value = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed);
                         return label + ': ' + value;
                     }
                 }
             }
         },
-        animation: {
-            animateRotate: true,
-            duration: 2000
-        }
+        animation: { animateRotate: true, duration: 2000 }
     }
 });
 
-// Line Chart untuk Trend Penjualan 7 Hari Terakhir
 <?php
-// Get sales data for last 7 days
 $sales_trend = [];
 $labels_trend = [];
 for ($i = 6; $i >= 0; $i--) {
@@ -379,14 +373,13 @@ for ($i = 6; $i >= 0; $i--) {
     $stmt = $pdo->prepare("SELECT COALESCE(SUM(total_jual), 0) as total FROM penjualan WHERE DATE(tgl_jual) = ?");
     $stmt->execute([$date]);
     $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-    
     $sales_trend[] = $total;
     $labels_trend[] = date('d M', strtotime($date));
 }
 ?>
 
 const trendCtx = document.getElementById('trendChart').getContext('2d');
-const trendChart = new Chart(trendCtx, {
+new Chart(trendCtx, {
     type: 'line',
     data: {
         labels: <?php echo json_encode($labels_trend); ?>,
@@ -409,16 +402,11 @@ const trendChart = new Chart(trendCtx, {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: false
-            },
+            legend: { display: false },
             tooltip: {
                 callbacks: {
                     label: function(context) {
-                        const value = new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR'
-                        }).format(context.parsed.y);
+                        const value = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
                         return 'Penjualan: ' + value;
                     }
                 }
@@ -429,40 +417,22 @@ const trendChart = new Chart(trendCtx, {
                 beginAtZero: true,
                 ticks: {
                     callback: function(value) {
-                        return new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(value);
+                        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
                     }
                 },
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                }
+                grid: { color: 'rgba(0, 0, 0, 0.1)' }
             },
-            x: {
-                grid: {
-                    display: false
-                }
-            }
+            x: { grid: { display: false } }
         },
-        animation: {
-            duration: 2000,
-            easing: 'easeInOutQuart'
-        }
+        animation: { duration: 2000, easing: 'easeInOutQuart' }
     }
 });
 
-// Hover effects untuk tabel rows
 document.addEventListener('DOMContentLoaded', function() {
     const tableRows = document.querySelectorAll('tbody tr');
-    tableRows.forEach(row => {
-        row.classList.add('table-row');
-    });
+    tableRows.forEach(row => { row.classList.add('table-row'); });
 });
 
-// Loading animation untuk form submit
 const reportForm = document.querySelector('form');
 if (reportForm) {
     reportForm.addEventListener('submit', function() {
@@ -470,8 +440,6 @@ if (reportForm) {
         const originalText = submitButton.innerHTML;
         submitButton.innerHTML = '<div class="loading"></div> Loading...';
         submitButton.disabled = true;
-        
-        // Re-enable after 3 seconds as fallback
         setTimeout(() => {
             submitButton.innerHTML = originalText;
             submitButton.disabled = false;
