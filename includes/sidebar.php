@@ -5,15 +5,15 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $menuItems = [
     ['id' => 'dashboard', 'title' => 'Dashboard', 'icon' => 'fas fa-tachometer-alt', 'file' => 'dashboard.php', 'roles' => ['admin', 'pegawai', 'pemilik']],
-    ['id' => 'userManagement', 'title' => 'Manajemen User', 'icon' => 'fas fa-users', 'file' => 'user_management.php', 'roles' => ['admin']],
-    ['id' => 'materialManagement', 'title' => 'Manajemen Bahan', 'icon' => 'fas fa-cubes', 'file' => 'material_management.php', 'roles' => ['admin']],
-    ['id' => 'productManagement', 'title' => 'Manajemen Barang', 'icon' => 'fas fa-boxes', 'file' => 'product_management.php', 'roles' => ['admin']],
-    ['id' => 'supplierManagement', 'title' => 'Manajemen Supplier', 'icon' => 'fas fa-truck', 'file' => 'supplier_management.php', 'roles' => ['admin']],
-    ['id' => 'productionManagement', 'title' => 'Manajemen Produksi', 'icon' => 'fas fa-industry', 'file' => 'production_management.php', 'roles' => ['admin']],
-    ['id' => 'costManagement', 'title' => 'Manajemen Biaya', 'icon' => 'fas fa-receipt', 'file' => 'cost_management.php', 'roles' => ['admin', 'pegawai']],
-    ['id' => 'purchaseManagement', 'title' => 'Manajemen Pembelian', 'icon' => 'fas fa-shopping-cart', 'file' => 'purchase_management.php', 'roles' => ['admin', 'pegawai']],
-    ['id' => 'salesManagement', 'title' => 'Manajemen Penjualan', 'icon' => 'fas fa-cash-register', 'file' => 'sales_management.php', 'roles' => ['admin', 'pegawai']],
-    ['id' => 'reports', 'title' => 'Laporan', 'icon' => 'fas fa-chart-bar', 'file' => 'reports.php', 'roles' => ['admin', 'pegawai', 'pemilik']],
+    ['id' => 'userManagement', 'title' => 'User', 'icon' => 'fas fa-users', 'file' => 'user_management.php', 'roles' => ['admin']],
+    ['id' => 'materialManagement', 'title' => 'Bahan', 'icon' => 'fas fa-cubes', 'file' => 'material_management.php', 'roles' => ['admin']],
+    ['id' => 'productManagement', 'title' => 'Barang', 'icon' => 'fas fa-boxes', 'file' => 'product_management.php', 'roles' => ['admin']],
+    ['id' => 'supplierManagement', 'title' => 'Supplier', 'icon' => 'fas fa-truck', 'file' => 'supplier_management.php', 'roles' => ['admin']],
+    ['id' => 'productionManagement', 'title' => 'Produksi', 'icon' => 'fas fa-industry', 'file' => 'production_management.php', 'roles' => ['admin']],
+    ['id' => 'costManagement', 'title' => 'Biaya', 'icon' => 'fas fa-receipt', 'file' => 'cost_management.php', 'roles' => [ 'pegawai']],
+    ['id' => 'purchaseManagement', 'title' => 'Pembelian', 'icon' => 'fas fa-shopping-cart', 'file' => 'purchase_management.php', 'roles' => [ 'pegawai']],
+    ['id' => 'salesManagement', 'title' => 'Penjualan', 'icon' => 'fas fa-cash-register', 'file' => 'sales_management.php', 'roles' => [ 'pegawai']],
+    ['id' => 'reports', 'title' => 'Laporan', 'icon' => 'fas fa-chart-bar', 'file' => 'reports.php', 'roles' => ['pemilik']],
 ];
 ?>
 <nav class="bg-blue-800 text-white w-64 min-h-screen">
