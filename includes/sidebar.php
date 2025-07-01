@@ -13,7 +13,13 @@ $menuItems = [
     ['id' => 'costManagement', 'title' => 'Biaya', 'icon' => 'fas fa-receipt', 'file' => 'cost_management.php', 'roles' => [ 'pegawai']],
     ['id' => 'purchaseManagement', 'title' => 'Pembelian', 'icon' => 'fas fa-shopping-cart', 'file' => 'purchase_management.php', 'roles' => [ 'pegawai']],
     ['id' => 'salesManagement', 'title' => 'Penjualan', 'icon' => 'fas fa-cash-register', 'file' => 'sales_management.php', 'roles' => [ 'pegawai']],
-    ['id' => 'reports', 'title' => 'Laporan', 'icon' => 'fas fa-chart-bar', 'file' => 'reports.php', 'roles' => ['pemilik']],
+    ['id' => 'reports', 'title' => 'Laporan', 'icon' => 'fas fa-chart-bar', 'file' => 'reports.php', 'roles' => ['pemilik'], 'subItems' => [
+        ['title' => 'Laporan Penjualan', 'value' => 'penjualan'],
+        ['title' => 'Laporan Pembelian', 'value' => 'pembelian'],
+        ['title' => 'Laporan Penerimaan Kas', 'value' => 'penerimaan_kas'],
+        ['title' => 'Laporan Pengeluaran Kas', 'value' => 'pengeluaran_kas'],
+        ['title' => 'Laporan Buku Besar', 'value' => 'buku_besar']
+    ]],
 ];
 ?>
 <nav class="bg-blue-800 text-white w-64 min-h-screen">
