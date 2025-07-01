@@ -20,7 +20,7 @@ if (!isset($_SESSION['user']) && !in_array(basename($_SERVER['PHP_SELF']), ['log
     <header class="bg-blue-600 text-white p-4 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
             <div>
-                <img src="/kas-cv/assets/imgages/logo.png" alt="Logo CV. Karya Wahana Sentosa" class="h-12 mb-1">
+                <img src="../assets/images/logo.png" alt="Logo CV. Karya Wahana Sentosa" class="h-12 mb-1">
             </div>
             <?php if (isset($_SESSION['user'])): ?>
             <div class="flex items-center space-x-4">
