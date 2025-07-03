@@ -11,6 +11,7 @@ if ($_SESSION['user']['level'] !== 'admin') {
 $message = '';
 $error = '';
 
+// ... (Logika PHP Anda untuk CUD tetap sama) ...
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         $pdo->beginTransaction();
@@ -29,7 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     continue;
                 }
                 
-                // Check if material stock is sufficient
                 $stmt = $pdo->prepare("SELECT stok FROM bahan WHERE kd_bahan = ?");
                 $stmt->execute([$item['kd_bahan']]);
                 $currentStock = $stmt->fetchColumn();
@@ -78,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
+
 $stmt = $pdo->query("SELECT p.*, b.nama_barang AS product_name FROM produksi p JOIN barang b ON p.kd_barang = b.kd_barang ORDER BY p.tgl_produksi DESC");
 $productions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("SELECT kd_barang, nama_barang FROM barang");
@@ -85,119 +86,160 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("SELECT kd_bahan, nama_bahan, satuan FROM bahan");
 $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-<div class="flex min-h-screen">
+
+<!-- Tambahkan link ke file CSS responsif di dalam <head> -->
+<head>
+    <!-- ... tag head Anda yang lain ... -->
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+
+<!-- Tambahkan kelas 'flex-container' untuk layout utama -->
+<div class="flex-container min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <!-- Notifications -->
         <?php if ($message): ?>
             <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification">
-                <div class="flex items-center">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    <span><?php echo htmlspecialchars($message); ?></span>
-                </div>
+                <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
             </div>
         <?php endif; ?>
         
         <?php if ($error): ?>
             <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification">
-                <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle mr-2"></i>
-                    <span><?php echo htmlspecialchars($error); ?></span>
-                </div>
+                <div class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span><?php echo htmlspecialchars($error); ?></span></div>
             </div>
         <?php endif; ?>
         
         <div id="productionManagement" class="section active">
-            <h2 class="text-2xl font-bold mb-6">Manajemen Produksi</h2>
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold">Daftar Produksi</h3>
-                    <button onclick="showAddProductionForm()" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                        <i class="fas fa-plus mr-2"></i>Tambah Produksi
-                    </button>
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">Manajemen Produksi</h2>
+                <p class="text-gray-600 mt-2">Kelola data produksi barang jadi</p>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+                    <!-- Tambahkan kelas 'card-header' untuk layout responsif -->
+                    <div class="flex justify-between items-center card-header">
+                        <div>
+                            <h3 class="text-xl font-semibold text-white">Daftar Produksi</h3>
+                            <p class="text-blue-100 mt-1">Total: <?php echo count($productions); ?> riwayat</p>
+                        </div>
+                        <!-- Tambahkan kelas 'add-button' untuk styling responsif -->
+                        <button onclick="showAddProductionForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>Tambah Produksi
+                        </button>
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full table-auto">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID Produksi</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode Barang</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Barang</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah Produksi</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productionTableBody" class="bg-white divide-y divide-gray-200">
-                            <?php foreach ($productions as $production): ?>
+                
+                <div class="p-6">
+                    <div class="overflow-x-auto">
+                        <!-- Tambahkan kelas 'responsive-table' ke tabel -->
+                        <table class="min-w-full responsive-table">
+                            <thead>
                                 <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($production['id_produksi']); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($production['tgl_produksi']); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($production['kd_barang']); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($production['product_name']); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($production['jumlah_produksi']); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <button onclick="deleteProduction('<?php echo $production['id_produksi']; ?>')" class="text-red-600 hover:text-red-900">Hapus</button>
-                                    </td>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Produksi</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Tanggal</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Barang</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jumlah</th>
+                                    <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Aksi</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <?php foreach ($productions as $production): ?>
+                                    <tr>
+                                        <!-- Tambahkan atribut data-label untuk setiap sel -->
+                                        <td data-label="ID" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['id_produksi']); ?></td>
+                                        <td data-label="Tanggal" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars(date('d M Y', strtotime($production['tgl_produksi']))); ?></td>
+                                        <td data-label="Barang" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['product_name']); ?></td>
+                                        <td data-label="Jumlah" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['jumlah_produksi']); ?></td>
+                                        <!-- Tambahkan kelas 'actions-cell' untuk kolom aksi -->
+                                        <td class="px-6 py-4 text-center actions-cell">
+                                            <button onclick="deleteProduction('<?php echo $production['id_produksi']; ?>')" class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-        <div id="modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center">
-            <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full mx-4">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 id="modalTitle" class="text-lg font-semibold"></h3>
-                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
+
+        <!-- Modal -->
+        <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-auto transform transition-all max-h-[90vh] flex flex-col">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-xl flex-shrink-0">
+                    <div class="flex justify-between items-center">
+                        <h3 id="modalTitle" class="text-xl font-semibold text-white"></h3>
+                        <button onclick="closeModal()" class="text-white hover:text-gray-200 transition duration-200">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
                 </div>
-                <div id="modalContent"></div>
+                <!-- Konten modal yang bisa di-scroll -->
+                <div id="modalContent" class="p-6 overflow-y-auto"></div>
             </div>
         </div>
     </main>
 </div>
+
 <script>
 let itemCount = 0;
+const materialsData = <?php echo json_encode($materials); ?>;
+
+function showModal(title, content) {
+    document.getElementById('modalTitle').innerHTML = title;
+    document.getElementById('modalContent').innerHTML = content;
+    document.getElementById('modal').classList.remove('hidden');
+    document.getElementById('modal').classList.add('flex');
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.add('hidden');
+    document.getElementById('modal').classList.remove('flex');
+}
 
 function showAddProductionForm() {
     itemCount = 0;
     const content = `
-        <form method="POST" onsubmit="prepareItems()">
+        <form method="POST">
             <input type="hidden" name="action" value="add">
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">ID Produksi</label>
-                <input type="text" name="id_produksi" value="<?php echo generateId('PRD'); ?>" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">ID Produksi</label>
+                    <input type="text" name="id_produksi" value="<?php echo generateId('PRD'); ?>" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50" readonly>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Produk Jadi</label>
+                    <select name="kd_barang" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Pilih Produk</option>
+                        <?php foreach ($products as $product): ?>
+                            <option value="<?php echo $product['kd_barang']; ?>"><?php echo htmlspecialchars($product['nama_barang']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Jumlah Produksi</label>
+                    <input type="number" name="jumlah_produksi" required min="1" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Masukkan jumlah">
+                </div>
+                <div class="border-t pt-4">
+                    <h4 class="text-lg font-semibold mb-2 text-gray-800">Bahan yang Digunakan</h4>
+                    <div id="item-list" class="space-y-4"></div>
+                    <button type="button" onclick="addItem()" class="mt-4 text-blue-600 hover:text-blue-800 font-medium flex items-center">
+                        <i class="fas fa-plus-circle mr-2"></i>Tambah Bahan
+                    </button>
+                </div>
             </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Produk</label>
-                <select name="kd_barang" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
-                    <option value="">Pilih Produk</option>
-                    <?php foreach ($products as $product): ?>
-                        <option value="<?php echo $product['kd_barang']; ?>">
-                            <?php echo htmlspecialchars($product['nama_barang']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Jumlah Produksi</label>
-                <input type="number" name="jumlah_produksi" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
-            </div>
-            <div id="items" class="mb-4">
-                <h4 class="text-sm font-bold mb-2">Bahan Produksi</h4>
-                <div id="item-list"></div>
-                <button type="button" onclick="addItem()" class="text-blue-600 hover:text-blue-900 text-sm">+ Tambah Bahan</button>
-            </div>
-            <div class="flex justify-end space-x-2">
-                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-700">Batal</button>
-                <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700">Simpan</button>
+            <div class="flex justify-end space-x-3 mt-8 border-t pt-6">
+                <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">Batal</button>
+                <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"><i class="fas fa-save mr-2"></i>Simpan Produksi</button>
             </div>
         </form>
     `;
-    showModal('Tambah Produksi', content);
+    showModal('Tambah Data Produksi', content);
+    addItem(); // Langsung tambahkan satu item bahan saat form dibuka
 }
 
 function addItem() {

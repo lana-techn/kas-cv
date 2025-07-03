@@ -12,7 +12,7 @@ if ($_SESSION['user']['level'] !== 'admin') {
 $message = '';
 $error = '';
 
-// Penanganan form untuk Aksi Tambah, Edit, dan Hapus
+// ... (Logika PHP Anda untuk CUD tetap sama) ...
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         if ($_POST['action'] === 'add') {
@@ -50,30 +50,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
+
 // Mengambil semua data bahan baku
 $stmt = $pdo->query("SELECT * FROM bahan ORDER BY nama_bahan");
 $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<div class="flex min-h-screen bg-gray-100">
+<!-- Tambahkan link ke file CSS responsif di dalam <head> -->
+<head>
+    <!-- ... tag head Anda yang lain ... -->
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+
+<!-- Tambahkan kelas 'flex-container' untuk mengatur layout sidebar dan main content -->
+<div class="flex-container min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <!-- Notifikasi -->
         <?php if ($message): ?>
             <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification">
-                <div class="flex items-center">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    <span><?php echo htmlspecialchars($message); ?></span>
-                </div>
+                <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
             </div>
         <?php endif; ?>
         
         <?php if ($error): ?>
             <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification">
-                <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle mr-2"></i>
-                    <span><?php echo htmlspecialchars($error); ?></span>
-                </div>
+                <div class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span><?php echo htmlspecialchars($error); ?></span></div>
             </div>
         <?php endif; ?>
 
@@ -85,12 +87,14 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
-                    <div class="flex justify-between items-center">
+                    <!-- Tambahkan kelas 'card-header' untuk mengatur header kartu -->
+                    <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Bahan Baku</h3>
                             <p class="text-blue-100 mt-1">Total: <?php echo count($materials); ?> bahan</p>
                         </div>
-                        <button onclick="showAddMaterialForm()" class="bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                        <!-- Tambahkan kelas 'add-button' untuk styling responsif -->
+                        <button onclick="showAddMaterialForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                             <i class="fas fa-plus mr-2"></i>Tambah Bahan
                         </button>
                     </div>
@@ -105,7 +109,8 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full">
+                            <!-- Tambahkan kelas 'responsive-table' -->
+                            <table class="min-w-full responsive-table">
                                 <thead>
                                     <tr class="border-b border-gray-200">
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Kode Bahan</th>
@@ -118,11 +123,13 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <tbody class="divide-y divide-gray-200">
                                     <?php foreach ($materials as $material): ?>
                                         <tr class="hover:bg-gray-50 transition duration-200">
-                                            <td class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($material['kd_bahan']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($material['nama_bahan']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($material['stok']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($material['satuan']); ?></td>
-                                            <td class="px-6 py-4 text-center">
+                                            <!-- Tambahkan atribut data-label untuk setiap sel data -->
+                                            <td data-label="Kode" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($material['kd_bahan']); ?></td>
+                                            <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($material['nama_bahan']); ?></td>
+                                            <td data-label="Stok" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($material['stok']); ?></td>
+                                            <td data-label="Satuan" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($material['satuan']); ?></td>
+                                            <!-- Tambahkan kelas 'actions-cell' untuk kolom aksi -->
+                                            <td class="px-6 py-4 text-center actions-cell">
                                                 <div class="flex justify-center space-x-2">
                                                     <button onclick="editMaterial('<?php echo $material['kd_bahan']; ?>', '<?php echo htmlspecialchars(addslashes($material['nama_bahan'])); ?>', '<?php echo $material['stok']; ?>', '<?php echo htmlspecialchars(addslashes($material['satuan'])); ?>')" 
                                                             class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition duration-200">
@@ -144,7 +151,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- Modal -->
+        <!-- Modal (tidak ada perubahan signifikan, sudah cukup responsif) -->
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
             <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-xl">
@@ -161,15 +168,18 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </main>
 </div>
 
+<!-- ... (JavaScript Anda tetap sama) ... -->
 <script>
 function showModal(title, content) {
     document.getElementById('modalTitle').innerHTML = title;
     document.getElementById('modalContent').innerHTML = content;
     document.getElementById('modal').classList.remove('hidden');
+    document.getElementById('modal').classList.add('flex'); // Gunakan flex untuk centering
 }
 
 function closeModal() {
     document.getElementById('modal').classList.add('hidden');
+    document.getElementById('modal').classList.remove('flex');
 }
 
 function showAddMaterialForm() {
@@ -289,7 +299,6 @@ function validateForm(form) {
     return true;
 }
 
-// Menutup notifikasi setelah beberapa detik
 document.addEventListener('DOMContentLoaded', (event) => {
     const notifications = document.querySelectorAll('.notification');
     notifications.forEach(notification => {

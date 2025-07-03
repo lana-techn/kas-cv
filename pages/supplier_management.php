@@ -11,6 +11,7 @@ if ($_SESSION['user']['level'] !== 'admin') {
 $message = '';
 $error = '';
 
+// ... (Logika PHP Anda untuk CUD tetap sama) ...
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         if ($_POST['action'] === 'add') {
@@ -18,7 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 throw new Exception('Semua field harus diisi');
             }
             
-            // Validate phone number
             $phone = trim($_POST['no_telpon']);
             if (!preg_match('/^[0-9+\-\s()]+$/', $phone)) {
                 throw new Exception('Format nomor telepon tidak valid');
@@ -38,7 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 throw new Exception('Semua field harus diisi');
             }
             
-            // Validate phone number
             $phone = trim($_POST['no_telpon']);
             if (!preg_match('/^[0-9+\-\s()]+$/', $phone)) {
                 throw new Exception('Format nomor telepon tidak valid');
@@ -62,29 +61,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
+
 $stmt = $pdo->query("SELECT * FROM supplier ORDER BY nama_supplier");
 $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<div class="flex min-h-screen">
+<!-- Tambahkan link ke file CSS responsif di dalam <head> -->
+<head>
+    <!-- ... tag head Anda yang lain ... -->
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+
+<!-- Tambahkan kelas 'flex-container' untuk layout utama -->
+<div class="flex-container min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <!-- Notifications -->
         <?php if ($message): ?>
-            <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-                <div class="flex items-center">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    <span><?php echo htmlspecialchars($message); ?></span>
-                </div>
+            <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification">
+                <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
             </div>
         <?php endif; ?>
         
         <?php if ($error): ?>
-            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle mr-2"></i>
-                    <span><?php echo htmlspecialchars($error); ?></span>
-                </div>
+            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification">
+                <div class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span><?php echo htmlspecialchars($error); ?></span></div>
             </div>
         <?php endif; ?>
 
@@ -96,12 +97,14 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
-                    <div class="flex justify-between items-center">
+                    <!-- Tambahkan kelas 'card-header' untuk layout responsif -->
+                    <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Supplier</h3>
                             <p class="text-blue-100 mt-1">Total: <?php echo count($suppliers); ?> supplier</p>
                         </div>
-                        <button onclick="showAddSupplierForm()" class="bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                        <!-- Tambahkan kelas 'add-button' untuk styling responsif -->
+                        <button onclick="showAddSupplierForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                             <i class="fas fa-plus mr-2"></i>Tambah Supplier
                         </button>
                     </div>
@@ -116,7 +119,8 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full">
+                            <!-- Tambahkan kelas 'responsive-table' ke tabel -->
+                            <table class="min-w-full responsive-table">
                                 <thead>
                                     <tr class="border-b border-gray-200">
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Supplier</th>
@@ -129,17 +133,19 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <tbody class="divide-y divide-gray-200">
                                     <?php foreach ($suppliers as $supplier): ?>
                                         <tr class="hover:bg-gray-50 transition duration-200">
-                                            <td class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($supplier['id_supplier']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate"><?php echo htmlspecialchars($supplier['alamat']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['no_telpon']); ?></td>
-                                            <td class="px-6 py-4 text-center">
+                                            <!-- Tambahkan atribut data-label untuk setiap sel -->
+                                            <td data-label="ID" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($supplier['id_supplier']); ?></td>
+                                            <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></td>
+                                            <td data-label="Alamat" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($supplier['alamat']); ?></td>
+                                            <td data-label="No. Telpon" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['no_telpon']); ?></td>
+                                            <!-- Tambahkan kelas 'actions-cell' untuk kolom aksi -->
+                                            <td class="px-6 py-4 text-center actions-cell">
                                                 <div class="flex justify-center space-x-2">
-                                                    <button onclick="editSupplier('<?php echo $supplier['id_supplier']; ?>', '<?php echo htmlspecialchars($supplier['nama_supplier']); ?>', '<?php echo htmlspecialchars($supplier['alamat']); ?>', '<?php echo htmlspecialchars($supplier['no_telpon']); ?>')" 
+                                                    <button onclick="editSupplier('<?php echo $supplier['id_supplier']; ?>', '<?php echo htmlspecialchars(addslashes($supplier['nama_supplier'])); ?>', '<?php echo htmlspecialchars(addslashes($supplier['alamat'])); ?>', '<?php echo htmlspecialchars($supplier['no_telpon']); ?>')" 
                                                             class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition duration-200">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button onclick="deleteSupplier('<?php echo $supplier['id_supplier']; ?>', '<?php echo htmlspecialchars($supplier['nama_supplier']); ?>')" 
+                                                    <button onclick="deleteSupplier('<?php echo $supplier['id_supplier']; ?>', '<?php echo htmlspecialchars(addslashes($supplier['nama_supplier'])); ?>')" 
                                                             class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
@@ -155,7 +161,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- Modal -->
+        <!-- Modal (tidak ada perubahan signifikan, sudah cukup responsif) -->
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
             <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-xl">
@@ -172,10 +178,23 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </main>
 </div>
 
+<!-- ... (JavaScript Anda tetap sama, dengan sedikit perbaikan pada show/close modal) ... -->
 <script>
+function showModal(title, content) {
+    document.getElementById('modalTitle').innerHTML = title;
+    document.getElementById('modalContent').innerHTML = content;
+    document.getElementById('modal').classList.remove('hidden');
+    document.getElementById('modal').classList.add('flex');
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.add('hidden');
+    document.getElementById('modal').classList.remove('flex');
+}
+
 function showAddSupplierForm() {
     const content = `
-        <form method="POST" onsubmit="return validateForm()">
+        <form id="supplierForm" method="POST" onsubmit="return validateForm(this)">
             <input type="hidden" name="action" value="add">
             <div class="space-y-4">
                 <div>
@@ -218,8 +237,13 @@ function showAddSupplierForm() {
 }
 
 function editSupplier(id, nama, alamat, telpon) {
+    // Menggunakan addslashes untuk handle kutip dalam string
+    const safeNama = nama.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const safeAlamat = alamat.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const safeTelpon = telpon.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
     const content = `
-        <form method="POST" onsubmit="return validateForm()">
+        <form id="supplierForm" method="POST" onsubmit="return validateForm(this)">
             <input type="hidden" name="action" value="edit">
             <input type="hidden" name="id_supplier" value="${id}">
             <div class="space-y-4">
@@ -230,17 +254,17 @@ function editSupplier(id, nama, alamat, telpon) {
                 </div>
                 <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Nama Supplier <span class="text-red-500">*</span></label>
-                    <input type="text" name="nama_supplier" value="${nama}" required 
+                    <input type="text" name="nama_supplier" value="${safeNama}" required 
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Alamat <span class="text-red-500">*</span></label>
                     <textarea name="alamat" required rows="3"
-                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">${alamat}</textarea>
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">${safeAlamat}</textarea>
                 </div>
                 <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">No. Telpon <span class="text-red-500">*</span></label>
-                    <input type="tel" name="no_telpon" value="${telpon}" required 
+                    <input type="tel" name="no_telpon" value="${safeTelpon}" required 
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
             </div>
@@ -272,25 +296,23 @@ function deleteSupplier(id, nama) {
     }
 }
 
-function validateForm() {
-    const nama = document.querySelector('input[name="nama_supplier"]').value.trim();
-    const alamat = document.querySelector('textarea[name="alamat"]').value.trim();
-    const telpon = document.querySelector('input[name="no_telpon"]').value.trim();
+function validateForm(form) {
+    const nama = form.querySelector('input[name="nama_supplier"]').value.trim();
+    const alamat = form.querySelector('textarea[name="alamat"]').value.trim();
+    const telpon = form.querySelector('input[name="no_telpon"]').value.trim();
     
     if (!nama || !alamat || !telpon) {
         alert('Semua field wajib diisi!');
         return false;
     }
     
-    // Validate phone number format - allow digits, +, -, spaces, parentheses
     const phoneRegex = /^[0-9+\-\s()]+$/;
     if (!phoneRegex.test(telpon)) {
         alert('Format nomor telepon tidak valid! Gunakan hanya angka, +, -, spasi, atau tanda kurung.');
         return false;
     }
     
-    // Check phone number length
-    const cleanPhone = telpon.replace(/[^0-9]/g, ''); // Remove non-digits
+    const cleanPhone = telpon.replace(/[^0-9]/g, '');
     if (cleanPhone.length < 8 || cleanPhone.length > 15) {
         alert('Nomor telepon harus memiliki 8-15 digit angka!');
         return false;
@@ -298,6 +320,18 @@ function validateForm() {
     
     return true;
 }
+
+// Menutup notifikasi setelah beberapa detik
+document.addEventListener('DOMContentLoaded', (event) => {
+    const notifications = document.querySelectorAll('.notification');
+    notifications.forEach(notification => {
+        setTimeout(() => {
+            notification.style.transition = 'opacity 0.5s ease';
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 500);
+        }, 3000);
+    });
+});
 </script>
 
 <?php require_once '../includes/footer.php'; ?>
