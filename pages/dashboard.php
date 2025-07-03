@@ -12,7 +12,8 @@ $data = []; // Inisialisasi array untuk menampung semua data yang akan dikirim k
 // Fungsi untuk format waktu "time ago"
 // Didefinisikan sekali di level atas untuk menghindari duplikasi.
 if (!function_exists('time_ago')) {
-    function time_ago($timestamp) {
+    function time_ago($timestamp)
+    {
         $time_ago = time() - $timestamp;
         if ($time_ago < 60) return 'beberapa detik lalu';
         $minutes = round($time_ago / 60);
@@ -56,7 +57,6 @@ if ($userLevel === 'admin') {
     // Urutkan dan potong array aktivitas
     usort($latestActivities, fn($a, $b) => $b['timestamp'] - $a['timestamp']);
     $data['latestActivities'] = array_slice($latestActivities, 0, 5);
-
 } elseif ($userLevel === 'pegawai') {
     // --- Data untuk Statistik Pegawai ---
     $today = date('Y-m-d');
@@ -67,7 +67,7 @@ if ($userLevel === 'admin') {
     $stmt_purchases_today = $pdo->prepare("SELECT COUNT(*) FROM pembelian WHERE tgl_beli = ?");
     $stmt_purchases_today->execute([$today]);
     $data['purchasesToday'] = $stmt_purchases_today->fetchColumn();
-    
+
     $stmt_costs_month = $pdo->prepare("SELECT SUM(total) FROM biaya WHERE MONTH(tgl_biaya) = MONTH(CURDATE()) AND YEAR(tgl_biaya) = YEAR(CURDATE())");
     $stmt_costs_month->execute();
     $data['costsThisMonth'] = $stmt_costs_month->fetchColumn() ?? 0;
@@ -80,7 +80,28 @@ if ($userLevel === 'admin') {
         ORDER BY tanggal DESC
         LIMIT 5
     ")->fetchAll(PDO::FETCH_ASSOC);
+    $stmtBahan = $pdo->query("SELECT COUNT(*) FROM bahan");
+    $data['totalMaterials'] = $stmtBahan->fetchColumn();
 
+    $stmtProduk = $pdo->query("SELECT COUNT(*) FROM barang");
+    $data['totalProducts'] = $stmtProduk->fetchColumn();
+
+    $stmtSupplier = $pdo->query("SELECT COUNT(*) FROM supplier");
+    $data['totalSuppliers'] = $stmtSupplier->fetchColumn();
+    // --- Tambahkan kode ini di bagian atas file dashboard.php ---
+
+    // Tentukan batas stok rendah
+    $lowStockThreshold = 20;
+
+    // Hitung bahan baku yang stoknya menipis
+    $stmtLowStockBahan = $pdo->prepare("SELECT COUNT(*) FROM bahan WHERE stok <= ?");
+    $stmtLowStockBahan->execute([$lowStockThreshold]);
+    $data['lowStockMaterials'] = $stmtLowStockBahan->fetchColumn();
+
+    // Hitung produk jadi yang stoknya menipis
+    $stmtLowStockProduk = $pdo->prepare("SELECT COUNT(*) FROM barang WHERE stok <= ?");
+    $stmtLowStockProduk->execute([$lowStockThreshold]);
+    $data['lowStockProducts'] = $stmtLowStockProduk->fetchColumn();
 } elseif ($userLevel === 'pemilik') {
     // --- Data untuk Statistik Pemilik ---
     $data['totalBarang'] = $pdo->query("SELECT COUNT(*) FROM barang")->fetchColumn();
@@ -89,7 +110,7 @@ if ($userLevel === 'admin') {
     $totalBiaya = $pdo->query("SELECT SUM(total) FROM biaya")->fetchColumn() ?? 0;
     $data['totalPengeluaran'] = $totalPembelian + $totalBiaya;
     $data['saldoKas'] = $data['totalPenjualan'] - $data['totalPengeluaran'];
-    
+
     // --- Data untuk Grafik Pemilik ---
     $salesData = array_fill(0, 12, 0);
     $purchasesData = array_fill(0, 12, 0);
@@ -125,12 +146,12 @@ if ($userLevel === 'admin') {
                     <div class="group relative bg-gradient-to-br from-yellow-400 to-orange-500 p-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
                         <div class="absolute -right-4 -bottom-4 bg-white/10 w-24 h-24 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
                         <div class="relative z-10">
-                             <h3 class="text-white font-semibold text-lg">Manajemen Bahan</h3>
-                             <p class="text-3xl font-bold text-white mt-4">5 <span class="text-base font-normal opacity-80">Stok Menipis</span></p>
-                             <a href="material_management.php" class="inline-block mt-4 bg-white text-orange-600 font-bold py-2 px-4 rounded-lg text-sm">Cek Inventaris</a>
+                            <h3 class="text-white font-semibold text-lg">Manajemen Bahan</h3>
+                            <p class="text-3xl font-bold text-white mt-4">5 <span class="text-base font-normal opacity-80">Stok Menipis</span></p>
+                            <a href="material_management.php" class="inline-block mt-4 bg-white text-orange-600 font-bold py-2 px-4 rounded-lg text-sm">Cek Inventaris</a>
                         </div>
                     </div>
-                     <div class="group relative bg-gradient-to-br from-green-500 to-teal-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                    <div class="group relative bg-gradient-to-br from-green-500 to-teal-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
                         <div class="absolute -right-4 -bottom-4 bg-white/10 w-24 h-24 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
                         <div class="relative z-10">
                             <h3 class="text-white font-semibold text-lg">Manajemen Supplier</h3>
@@ -141,9 +162,9 @@ if ($userLevel === 'admin') {
                     <div class="group relative bg-gradient-to-br from-purple-500 to-pink-500 p-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
                         <div class="absolute -right-4 -bottom-4 bg-white/10 w-24 h-24 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
                         <div class="relative z-10">
-                             <h3 class="text-white font-semibold text-lg">Manajemen Produksi</h3>
-                             <p class="text-3xl font-bold text-white mt-4">2 <span class="text-base font-normal opacity-80">Produksi Aktif</span></p>
-                             <a href="production_management.php" class="inline-block mt-4 bg-white text-purple-600 font-bold py-2 px-4 rounded-lg text-sm">Mulai Produksi</a>
+                            <h3 class="text-white font-semibold text-lg">Manajemen Produksi</h3>
+                            <p class="text-3xl font-bold text-white mt-4">2 <span class="text-base font-normal opacity-80">Produksi Aktif</span></p>
+                            <a href="production_management.php" class="inline-block mt-4 bg-white text-purple-600 font-bold py-2 px-4 rounded-lg text-sm">Mulai Produksi</a>
                         </div>
                     </div>
                 </div>
@@ -164,14 +185,16 @@ if ($userLevel === 'admin') {
                         <table class="min-w-full">
                             <tbody>
                                 <?php if (empty($data['latestActivities'])): ?>
-                                    <tr><td class="py-4 text-center text-gray-500">Belum ada aktivitas.</td></tr>
+                                    <tr>
+                                        <td class="py-4 text-center text-gray-500">Belum ada aktivitas.</td>
+                                    </tr>
                                 <?php else: ?>
                                     <?php foreach ($data['latestActivities'] as $activity): ?>
-                                    <tr class="border-b last:border-b-0">
-                                        <td class="py-3 px-2 text-center w-10"><i class="<?php echo $activity['icon']; ?>"></i></td>
-                                        <td class="py-3 px-2 text-gray-600"><?php echo $activity['description']; ?></td>
-                                        <td class="py-3 px-2 text-sm text-gray-400 text-right whitespace-nowrap"><?php echo time_ago($activity['timestamp']); ?></td>
-                                    </tr>
+                                        <tr class="border-b last:border-b-0">
+                                            <td class="py-3 px-2 text-center w-10"><i class="<?php echo $activity['icon']; ?>"></i></td>
+                                            <td class="py-3 px-2 text-gray-600"><?php echo $activity['description']; ?></td>
+                                            <td class="py-3 px-2 text-sm text-gray-400 text-right whitespace-nowrap"><?php echo time_ago($activity['timestamp']); ?></td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </tbody>
@@ -197,11 +220,33 @@ if ($userLevel === 'admin') {
                         <a href="cost_management.php" class="block w-full text-center mt-4 bg-white text-yellow-800 font-bold py-3 rounded-lg">Input Biaya</a>
                     </div>
                 </div>
+
+                <div class="mb-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">🚨 Peringatan Stok</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="group relative bg-gradient-to-br from-red-500 to-orange-500 p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
+                            <div>
+                                <h3 class="text-white font-bold text-2xl">Stok Bahan Menipis</h3>
+                                <p class="text-white text-lg mt-2"><strong class="font-bold"><?php echo $data['lowStockMaterials']; ?></strong> jenis bahan perlu diisi ulang</p>
+                            </div>
+                            <a href="material_list.php" class="block w-full text-center mt-4 bg-white text-red-600 font-bold py-3 rounded-lg">Lihat Detail</a>
+                        </div>
+
+                        <div class="group relative bg-gradient-to-br from-amber-500 to-yellow-500 p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
+                            <div>
+                                <h3 class="text-white font-bold text-2xl">Stok Produk Menipis</h3>
+                                <p class="text-white text-lg mt-2"><strong class="font-bold"><?php echo $data['lowStockProducts']; ?></strong> jenis produk perlu diproduksi</p>
+                            </div>
+                            <a href="product_list.php?type=barang" class="block w-full text-center mt-4 bg-white text-amber-800 font-bold py-3 rounded-lg">Lihat Detail</a>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bg-white p-6 rounded-2xl shadow-md">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">5 Transaksi Terakhir Anda</h3>
                     <table class="min-w-full">
                         <tbody>
-                             <?php foreach ($data['recentTransactions'] as $trans): ?>
+                            <?php foreach ($data['recentTransactions'] as $trans): ?>
                                 <tr class="border-b last:border-b-0 hover:bg-gray-50">
                                     <td class="py-3 px-2 text-center w-10">
                                         <i class="fas <?php echo $trans['tipe'] === 'penjualan' ? 'fa-arrow-up text-green-500' : 'fa-arrow-down text-red-500'; ?>"></i>
@@ -235,7 +280,7 @@ if ($userLevel === 'admin') {
                         <p class="text-sm font-medium text-gray-600">Saldo Kas</p>
                         <p class="text-2xl font-semibold text-gray-900"><?php echo formatCurrency($data['saldoKas']); ?></p>
                     </div>
-                     <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="bg-white p-6 rounded-lg shadow">
                         <p class="text-sm font-medium text-gray-600">Total Barang</p>
                         <p class="text-2xl font-semibold text-gray-900"><?php echo $data['totalBarang']; ?></p>
                     </div>
@@ -251,26 +296,29 @@ if ($userLevel === 'admin') {
 </div>
 
 <?php if ($userLevel === 'pemilik'): ?>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            datasets: [{
-                label: 'Penjualan',
-                data: <?php echo $data['salesChartData']; ?>,
-                backgroundColor: 'rgba(59, 130, 246, 0.8)',
-            }, {
-                label: 'Pembelian',
-                data: <?php echo $data['purchasesChartData']; ?>,
-                backgroundColor: 'rgba(239, 68, 68, 0.8)',
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
-</script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [{
+                    label: 'Penjualan',
+                    data: <?php echo $data['salesChartData']; ?>,
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                }, {
+                    label: 'Pembelian',
+                    data: <?php echo $data['purchasesChartData']; ?>,
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    </script>
 <?php endif; ?>
 
 <?php require_once '../includes/footer.php'; ?>
