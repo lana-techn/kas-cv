@@ -3,7 +3,7 @@ require_once '../config/db_connect.php';
 require_once '../includes/function.php';
 require_once '../includes/header.php';
 
-// Mengambil semua data produk
+// Mengambil semua data  dari barang tabel 'barang'
 $stmt = $pdo->query("SELECT * FROM barang ORDER BY nama_barang");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -13,16 +13,16 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <main class="flex-1 p-6">
         <div id="productManagement" class="section active">
             <div class="mb-6">
-                <h2 class="text-3xl font-bold text-gray-800">Daftar Produk</h2>
-                <p class="text-gray-600 mt-2">Menampilkan semua produk jadi yang tersedia</p>
+                <h2 class="text-3xl font-bold text-gray-800">Daftar Barang</h2>
+                <p class="text-gray-600 mt-2">Menampilkan semua barang jadi yang tersedia</p>
             </div>
             
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h3 class="text-xl font-semibold text-white">Daftar Produk</h3>
-                            <p class="text-blue-100 mt-1">Total: <?php echo count($products); ?> produk</p>
+                            <h3 class="text-xl font-semibold text-white">Daftar barang</h3>
+                            <p class="text-blue-100 mt-1">Total: <?php echo count($products); ?> barang</p>
                         </div>
                     </div>
                 </div>
@@ -31,8 +31,8 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <?php if (empty($products)): ?>
                         <div class="text-center py-12">
                             <i class="fas fa-cookie-bite text-gray-400 text-6xl mb-4"></i>
-                            <h3 class="text-xl font-semibold text-gray-600 mb-2">Belum ada produk</h3>
-                            <p class="text-gray-500">Saat ini tidak ada data produk yang tersedia.</p>
+                            <h3 class="text-xl font-semibold text-gray-600 mb-2">Belum ada barang</h3>
+                            <p class="text-gray-500">Saat ini tidak ada data barang yang tersedia.</p>
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
