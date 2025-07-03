@@ -80,7 +80,7 @@ $today = date('Y-m-d');
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
-<div class="flex-container min-h-screen bg-gray-100">
+<div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <!-- Notifikasi -->
@@ -100,7 +100,7 @@ $today = date('Y-m-d');
                 <h2 class="text-3xl font-bold text-gray-800">Manajemen Penjualan</h2>
                 <p class="text-gray-600 mt-2">Kelola transaksi penjualan produk jadi</p>
             </div>
-            
+
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <div class="flex justify-between items-center card-header">
@@ -113,7 +113,7 @@ $today = date('Y-m-d');
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="p-6">
                     <div class="overflow-x-auto">
                         <table class="min-w-full responsive-table">
@@ -164,7 +164,7 @@ $today = date('Y-m-d');
                 <form id="sale-form" method="POST" class="flex flex-col flex-grow">
                     <div class="p-6 overflow-y-auto flex-grow">
                         <input type="hidden" name="action" value="add">
-                        
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
                                 <label class="block text-gray-700 text-sm font-semibold mb-2">ID Penjualan</label>
@@ -196,7 +196,7 @@ $today = date('Y-m-d');
                                 <tbody id="item-list"></tbody>
                             </table>
                         </div>
-                        
+
                         <div class="flex flex-col md:flex-row justify-end mt-6">
                             <div class="w-full md:w-2/5 space-y-3">
                                 <div>
@@ -256,103 +256,107 @@ $today = date('Y-m-d');
 </template>
 
 <script>
-const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
-
-function showAddSaleForm() {
-    document.getElementById('sale-form').reset();
-    document.getElementById('item-list').innerHTML = '';
-    addItem();
-    updateTotal();
-    document.getElementById('sale-modal').classList.remove('hidden');
-}
-
-function closeModalSales() {
-    document.getElementById('sale-modal').classList.add('hidden');
-}
-
-function addItem() {
-    const template = document.getElementById('item-template').content.cloneNode(true);
-    const itemCount = document.querySelectorAll('#item-list tr').length;
-    
-    template.querySelector('[name="kd_barang"]').name = `items[${itemCount}][kd_barang]`;
-    template.querySelector('[name="harga_jual"]').name = `items[${itemCount}][harga_jual]`;
-    template.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
-    template.querySelector('[name="subtotal_display"]').name = `items[${itemCount}][subtotal_display]`;
-    template.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
-
-    document.getElementById('item-list').appendChild(template);
-}
-
-function removeItem(button) {
-    button.closest('.item-row').remove();
-    updateTotal();
-}
-
-function checkStock(element) {
-    const row = element.closest('.item-row');
-    const productSelect = row.querySelector('[name*="[kd_barang]"]');
-    const qtyInput = row.querySelector('[name*="[qty]"]');
-    const selectedOption = productSelect.options[productSelect.selectedIndex];
-    
-    if (selectedOption && selectedOption.value) {
-        const stok = parseInt(selectedOption.getAttribute('data-stok'), 10);
-        const qty = parseInt(qtyInput.value, 10) || 0;
-        
-        if (qty > stok) {
-            alert(`Stok tidak mencukupi! Sisa stok untuk produk ini adalah ${stok}.`);
-            qtyInput.value = stok;
-            updateTotal();
-        }
-    }
-}
-
-function updateTotal() {
-    let total = 0;
-    document.querySelectorAll('#item-list tr').forEach(row => {
-        const harga = parseFloat(row.querySelector('[name*="[harga_jual]"]').value) || 0;
-        const qty = parseFloat(row.querySelector('[name*="[qty]"]').value) || 0;
-        const subtotal = harga * qty;
-        row.querySelector('[name*="[subtotal_display]"]').value = currencyFormatter.format(subtotal);
-        row.querySelector('[name*="[subtotal]"]').value = subtotal;
-        total += subtotal;
+    const currencyFormatter = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
     });
 
-    document.getElementById('total_jual').value = total;
-    document.getElementById('total_display').value = currencyFormatter.format(total);
-    updateKembali();
-}
+    function showAddSaleForm() {
+        document.getElementById('sale-form').reset();
+        document.getElementById('item-list').innerHTML = '';
+        addItem();
+        updateTotal();
+        document.getElementById('sale-modal').classList.remove('hidden');
+    }
 
-function updateKembali() {
-    const total = parseFloat(document.getElementById('total_jual').value) || 0;
-    const bayar = parseFloat(document.getElementById('bayar').value) || 0;
-    const kembali = bayar > total ? bayar - total : 0;
-    
-    document.getElementById('kembali').value = kembali;
-    document.getElementById('kembali_display').value = currencyFormatter.format(kembali);
-}
+    function closeModalSales() {
+        document.getElementById('sale-modal').classList.add('hidden');
+    }
 
-function deleteSale(id_penjualan) {
-    if (confirm('Apakah Anda yakin ingin menghapus transaksi penjualan ini? Tindakan ini akan mengembalikan stok produk ke jumlah semula dan tidak dapat dibatalkan.')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `
+    function addItem() {
+        const template = document.getElementById('item-template').content.cloneNode(true);
+        const itemCount = document.querySelectorAll('#item-list tr').length;
+
+        template.querySelector('[name="kd_barang"]').name = `items[${itemCount}][kd_barang]`;
+        template.querySelector('[name="harga_jual"]').name = `items[${itemCount}][harga_jual]`;
+        template.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
+        template.querySelector('[name="subtotal_display"]').name = `items[${itemCount}][subtotal_display]`;
+        template.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
+
+        document.getElementById('item-list').appendChild(template);
+    }
+
+    function removeItem(button) {
+        button.closest('.item-row').remove();
+        updateTotal();
+    }
+
+    function checkStock(element) {
+        const row = element.closest('.item-row');
+        const productSelect = row.querySelector('[name*="[kd_barang]"]');
+        const qtyInput = row.querySelector('[name*="[qty]"]');
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+
+        if (selectedOption && selectedOption.value) {
+            const stok = parseInt(selectedOption.getAttribute('data-stok'), 10);
+            const qty = parseInt(qtyInput.value, 10) || 0;
+
+            if (qty > stok) {
+                alert(`Stok tidak mencukupi! Sisa stok untuk produk ini adalah ${stok}.`);
+                qtyInput.value = stok;
+                updateTotal();
+            }
+        }
+    }
+
+    function updateTotal() {
+        let total = 0;
+        document.querySelectorAll('#item-list tr').forEach(row => {
+            const harga = parseFloat(row.querySelector('[name*="[harga_jual]"]').value) || 0;
+            const qty = parseFloat(row.querySelector('[name*="[qty]"]').value) || 0;
+            const subtotal = harga * qty;
+            row.querySelector('[name*="[subtotal_display]"]').value = currencyFormatter.format(subtotal);
+            row.querySelector('[name*="[subtotal]"]').value = subtotal;
+            total += subtotal;
+        });
+
+        document.getElementById('total_jual').value = total;
+        document.getElementById('total_display').value = currencyFormatter.format(total);
+        updateKembali();
+    }
+
+    function updateKembali() {
+        const total = parseFloat(document.getElementById('total_jual').value) || 0;
+        const bayar = parseFloat(document.getElementById('bayar').value) || 0;
+        const kembali = bayar > total ? bayar - total : 0;
+
+        document.getElementById('kembali').value = kembali;
+        document.getElementById('kembali_display').value = currencyFormatter.format(kembali);
+    }
+
+    function deleteSale(id_penjualan) {
+        if (confirm('Apakah Anda yakin ingin menghapus transaksi penjualan ini? Tindakan ini akan mengembalikan stok produk ke jumlah semula dan tidak dapat dibatalkan.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id_penjualan" value="${id_penjualan}">
         `;
-        document.body.appendChild(form);
-        form.submit();
+            document.body.appendChild(form);
+            form.submit();
+        }
     }
-}
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.notification').forEach(notification => {
-        setTimeout(() => {
-            notification.style.transition = 'opacity 0.5s ease';
-            notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 500);
-        }, 3000);
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.notification').forEach(notification => {
+            setTimeout(() => {
+                notification.style.transition = 'opacity 0.5s ease';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        });
     });
-});
 </script>
 
 <?php require_once '../includes/footer.php'; ?>

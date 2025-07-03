@@ -75,7 +75,7 @@ $today = date('Y-m-d');
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
-<div class="flex-container min-h-screen bg-gray-100">
+<div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <!-- ... (Bagian Notifikasi dan Header Halaman tetap sama) ... -->
@@ -84,7 +84,7 @@ $today = date('Y-m-d');
                 <h2 class="text-3xl font-bold text-gray-800">Manajemen Pembelian</h2>
                 <p class="text-gray-600 mt-2">Kelola transaksi pembelian bahan baku dari supplier</p>
             </div>
-            
+
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <div class="flex justify-between items-center card-header">
@@ -97,7 +97,7 @@ $today = date('Y-m-d');
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="p-6">
                     <div class="overflow-x-auto">
                         <table class="min-w-full responsive-table">
@@ -189,7 +189,7 @@ $today = date('Y-m-d');
                                 <tbody id="item-list"></tbody>
                             </table>
                         </div>
-                        
+
                         <!-- ... (Bagian Total, Bayar, Kembali tetap sama) ... -->
                         <div class="flex flex-col md:flex-row justify-end mt-6">
                             <div class="w-full md:w-2/5 space-y-3">
@@ -254,73 +254,84 @@ $today = date('Y-m-d');
 
 <!-- ... (JavaScript Anda tetap sama) ... -->
 <script>
-const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
-function showAddPurchaseForm() {
-    document.getElementById('purchase-form').reset();
-    document.getElementById('item-list').innerHTML = '';
-    addItem();
-    updateTotal();
-    document.getElementById('purchase-modal').classList.remove('hidden');
-}
-function closeModalPurchase() {
-    document.getElementById('purchase-modal').classList.add('hidden');
-}
-function addItem() {
-    const template = document.getElementById('item-template').content.cloneNode(true);
-    const itemCount = document.querySelectorAll('#item-list tr').length;
-    template.querySelector('[name="kd_bahan"]').name = `items[${itemCount}][kd_bahan]`;
-    template.querySelector('[name="harga_beli"]').name = `items[${itemCount}][harga_beli]`;
-    template.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
-    template.querySelector('[name="subtotal_display"]').name = `items[${itemCount}][subtotal_display]`;
-    template.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
-    document.getElementById('item-list').appendChild(template);
-}
-function removeItem(button) {
-    button.closest('.item-row').remove();
-    updateTotal();
-}
-function updateTotal() {
-    let total = 0;
-    document.querySelectorAll('#item-list tr').forEach(row => {
-        const harga = parseFloat(row.querySelector('[name*="[harga_beli]"]').value) || 0;
-        const qty = parseFloat(row.querySelector('[name*="[qty]"]').value) || 0;
-        const subtotal = harga * qty;
-        row.querySelector('[name*="[subtotal_display]"]').value = currencyFormatter.format(subtotal);
-        row.querySelector('[name*="[subtotal]"]').value = subtotal;
-        total += subtotal;
+    const currencyFormatter = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
     });
-    document.getElementById('total_beli').value = total;
-    document.getElementById('total_display').value = currencyFormatter.format(total);
-    updateKembali();
-}
-function updateKembali() {
-    const total = parseFloat(document.getElementById('total_beli').value) || 0;
-    const bayar = parseFloat(document.getElementById('bayar').value) || 0;
-    const kembali = bayar > total ? bayar - total : 0;
-    document.getElementById('kembali').value = kembali;
-    document.getElementById('kembali_display').value = currencyFormatter.format(kembali);
-}
-function deletePurchase(id_pembelian) {
-    if (confirm('Apakah Anda yakin ingin menghapus transaksi pembelian ini? Tindakan ini akan mengembalikan stok bahan ke jumlah semula dan tidak dapat dibatalkan.')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `
+
+    function showAddPurchaseForm() {
+        document.getElementById('purchase-form').reset();
+        document.getElementById('item-list').innerHTML = '';
+        addItem();
+        updateTotal();
+        document.getElementById('purchase-modal').classList.remove('hidden');
+    }
+
+    function closeModalPurchase() {
+        document.getElementById('purchase-modal').classList.add('hidden');
+    }
+
+    function addItem() {
+        const template = document.getElementById('item-template').content.cloneNode(true);
+        const itemCount = document.querySelectorAll('#item-list tr').length;
+        template.querySelector('[name="kd_bahan"]').name = `items[${itemCount}][kd_bahan]`;
+        template.querySelector('[name="harga_beli"]').name = `items[${itemCount}][harga_beli]`;
+        template.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
+        template.querySelector('[name="subtotal_display"]').name = `items[${itemCount}][subtotal_display]`;
+        template.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
+        document.getElementById('item-list').appendChild(template);
+    }
+
+    function removeItem(button) {
+        button.closest('.item-row').remove();
+        updateTotal();
+    }
+
+    function updateTotal() {
+        let total = 0;
+        document.querySelectorAll('#item-list tr').forEach(row => {
+            const harga = parseFloat(row.querySelector('[name*="[harga_beli]"]').value) || 0;
+            const qty = parseFloat(row.querySelector('[name*="[qty]"]').value) || 0;
+            const subtotal = harga * qty;
+            row.querySelector('[name*="[subtotal_display]"]').value = currencyFormatter.format(subtotal);
+            row.querySelector('[name*="[subtotal]"]').value = subtotal;
+            total += subtotal;
+        });
+        document.getElementById('total_beli').value = total;
+        document.getElementById('total_display').value = currencyFormatter.format(total);
+        updateKembali();
+    }
+
+    function updateKembali() {
+        const total = parseFloat(document.getElementById('total_beli').value) || 0;
+        const bayar = parseFloat(document.getElementById('bayar').value) || 0;
+        const kembali = bayar > total ? bayar - total : 0;
+        document.getElementById('kembali').value = kembali;
+        document.getElementById('kembali_display').value = currencyFormatter.format(kembali);
+    }
+
+    function deletePurchase(id_pembelian) {
+        if (confirm('Apakah Anda yakin ingin menghapus transaksi pembelian ini? Tindakan ini akan mengembalikan stok bahan ke jumlah semula dan tidak dapat dibatalkan.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id_pembelian" value="${id_pembelian}">
         `;
-        document.body.appendChild(form);
-        form.submit();
+            document.body.appendChild(form);
+            form.submit();
+        }
     }
-}
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.notification').forEach(notification => {
-        setTimeout(() => {
-            notification.style.transition = 'opacity 0.5s ease';
-            notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 500);
-        }, 3000);
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.notification').forEach(notification => {
+            setTimeout(() => {
+                notification.style.transition = 'opacity 0.5s ease';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        });
     });
-});
 </script>
 
 <?php require_once '../includes/footer.php'; ?>

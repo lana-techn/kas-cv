@@ -48,7 +48,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
-<div class="flex-container min-h-screen bg-gray-100">
+<div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <!-- Notifikasi -->
@@ -68,7 +68,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <h2 class="text-3xl font-bold text-gray-800">Manajemen Biaya</h2>
                 <p class="text-gray-600 mt-2">Kelola biaya operasional dan pengeluaran lainnya</p>
             </div>
-            
+
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <div class="flex justify-between items-center card-header">
@@ -81,7 +81,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="p-6">
                     <?php if (empty($costs)): ?>
                         <div class="text-center py-12">
@@ -109,8 +109,8 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <td data-label="Tanggal" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars(date('d M Y', strtotime($cost['tgl_biaya']))); ?></td>
                                             <td data-label="Total" class="px-6 py-4 text-sm text-gray-900 font-medium text-right"><?php echo formatCurrency($cost['total']); ?></td>
                                             <td class="px-6 py-4 text-center actions-cell">
-                                                <button onclick="deleteCost('<?php echo $cost['id_biaya']; ?>', '<?php echo htmlspecialchars(addslashes($cost['nama_biaya'])); ?>')" 
-                                                        class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200">
+                                                <button onclick="deleteCost('<?php echo $cost['id_biaya']; ?>', '<?php echo htmlspecialchars(addslashes($cost['nama_biaya'])); ?>')"
+                                                    class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </td>
@@ -142,21 +142,21 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <script>
-function showModal(title, content) {
-    document.getElementById('modalTitle').innerHTML = title;
-    document.getElementById('modalContent').innerHTML = content;
-    document.getElementById('modal').classList.remove('hidden');
-    document.getElementById('modal').classList.add('flex');
-}
+    function showModal(title, content) {
+        document.getElementById('modalTitle').innerHTML = title;
+        document.getElementById('modalContent').innerHTML = content;
+        document.getElementById('modal').classList.remove('hidden');
+        document.getElementById('modal').classList.add('flex');
+    }
 
-function closeModal() {
-    document.getElementById('modal').classList.add('hidden');
-    document.getElementById('modal').classList.remove('flex');
-}
+    function closeModal() {
+        document.getElementById('modal').classList.add('hidden');
+        document.getElementById('modal').classList.remove('flex');
+    }
 
-function showAddCostForm() {
-    const today = new Date().toISOString().split('T')[0];
-    const content = `
+    function showAddCostForm() {
+        const today = new Date().toISOString().split('T')[0];
+        const content = `
         <form method="POST" onsubmit="return validateForm(this)">
             <input type="hidden" name="action" value="add">
             <div class="space-y-5">
@@ -195,48 +195,48 @@ function showAddCostForm() {
             </div>
         </form>
     `;
-showModal('Tambah Biaya Baru', content);
-}
+        showModal('Tambah Biaya Baru', content);
+    }
 
-function deleteCost(id, nama) {
-    if (confirm(`Apakah Anda yakin ingin menghapus biaya "\${nama}"?\n\nTindakan ini juga akan menghapus catatan terkait di kas keluar dan tidak dapat dibatalkan.`)) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `
+    function deleteCost(id, nama) {
+        if (confirm(`Apakah Anda yakin ingin menghapus biaya "\${nama}"?\n\nTindakan ini juga akan menghapus catatan terkait di kas keluar dan tidak dapat dibatalkan.`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id_biaya" value="\${id}">
         `;
-        document.body.appendChild(form);
-        form.submit();
+            document.body.appendChild(form);
+            form.submit();
+        }
     }
-}
 
-function validateForm(form) {
-    const nama = form.querySelector('input[name="nama_biaya"]').value.trim();
-    const tanggal = form.querySelector('input[name="tgl_biaya"]').value.trim();
-    const total = form.querySelector('input[name="total"]').value.trim();
-    
-    if (!nama || !tanggal || !total) {
-        alert('Semua field dengan tanda * wajib diisi!');
-        return false;
-    }
-    
-    if (isNaN(total) || parseInt(total) <= 0) {
-        alert('Total biaya harus berupa angka positif!');
-        return false;
-    }
-    
-    return true;
-}
+    function validateForm(form) {
+        const nama = form.querySelector('input[name="nama_biaya"]').value.trim();
+        const tanggal = form.querySelector('input[name="tgl_biaya"]').value.trim();
+        const total = form.querySelector('input[name="total"]').value.trim();
 
-document.addEventListener('DOMContentLoaded', (event) => {
-    document.querySelectorAll('.notification').forEach(notification => {
-        setTimeout(() => {
-            notification.style.transition = 'opacity 0.5s ease';
-            notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 500);
-        }, 3000);
+        if (!nama || !tanggal || !total) {
+            alert('Semua field dengan tanda * wajib diisi!');
+            return false;
+        }
+
+        if (isNaN(total) || parseInt(total) <= 0) {
+            alert('Total biaya harus berupa angka positif!');
+            return false;
+        }
+
+        return true;
+    }
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        document.querySelectorAll('.notification').forEach(notification => {
+            setTimeout(() => {
+                notification.style.transition = 'opacity 0.5s ease';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        });
     });
-});
 </script>
 <?php require_once '../includes/footer.php'; ?>

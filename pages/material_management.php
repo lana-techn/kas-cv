@@ -22,12 +22,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (!is_numeric($_POST['stok']) || $_POST['stok'] < 0) {
                 throw new Exception('Stok harus berupa angka dan tidak boleh negatif.');
             }
-            
+
             $kd_bahan = $_POST['kd_bahan'] ?: generateId('BHN');
             $stmt = $pdo->prepare("INSERT INTO bahan (kd_bahan, nama_bahan, stok, satuan) VALUES (?, ?, ?, ?)");
             $stmt->execute([$kd_bahan, $_POST['nama_bahan'], $_POST['stok'], $_POST['satuan']]);
             $message = 'Bahan berhasil ditambahkan.';
-
         } elseif ($_POST['action'] === 'edit') {
             if (empty($_POST['nama_bahan']) || !isset($_POST['stok']) || empty($_POST['satuan'])) {
                 throw new Exception('Semua field harus diisi.');
@@ -35,11 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (!is_numeric($_POST['stok']) || $_POST['stok'] < 0) {
                 throw new Exception('Stok harus berupa angka dan tidak boleh negatif.');
             }
-            
+
             $stmt = $pdo->prepare("UPDATE bahan SET nama_bahan = ?, stok = ?, satuan = ? WHERE kd_bahan = ?");
             $stmt->execute([$_POST['nama_bahan'], $_POST['stok'], $_POST['satuan'], $_POST['kd_bahan']]);
             $message = 'Bahan berhasil diupdate.';
-
         } elseif ($_POST['action'] === 'delete') {
             $stmt = $pdo->prepare("DELETE FROM bahan WHERE kd_bahan = ?");
             $stmt->execute([$_POST['kd_bahan']]);
@@ -57,13 +55,14 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!-- Tambahkan link ke file CSS responsif di dalam <head> -->
+
 <head>
     <!-- ... tag head Anda yang lain ... -->
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
 <!-- Tambahkan kelas 'flex-container' untuk mengatur layout sidebar dan main content -->
-<div class="flex-container min-h-screen bg-gray-100">
+<div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <!-- Notifikasi -->
@@ -72,7 +71,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
             </div>
         <?php endif; ?>
-        
+
         <?php if ($error): ?>
             <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification">
                 <div class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span><?php echo htmlspecialchars($error); ?></span></div>
@@ -84,7 +83,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <h2 class="text-3xl font-bold text-gray-800">Manajemen Bahan Baku</h2>
                 <p class="text-gray-600 mt-2">Kelola data bahan baku untuk produksi</p>
             </div>
-            
+
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <!-- Tambahkan kelas 'card-header' untuk mengatur header kartu -->
@@ -99,7 +98,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="p-6">
                     <?php if (empty($materials)): ?>
                         <div class="text-center py-12">
@@ -131,12 +130,12 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <!-- Tambahkan kelas 'actions-cell' untuk kolom aksi -->
                                             <td class="px-6 py-4 text-center actions-cell">
                                                 <div class="flex justify-center space-x-2">
-                                                    <button onclick="editMaterial('<?php echo $material['kd_bahan']; ?>', '<?php echo htmlspecialchars(addslashes($material['nama_bahan'])); ?>', '<?php echo $material['stok']; ?>', '<?php echo htmlspecialchars(addslashes($material['satuan'])); ?>')" 
-                                                            class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition duration-200">
+                                                    <button onclick="editMaterial('<?php echo $material['kd_bahan']; ?>', '<?php echo htmlspecialchars(addslashes($material['nama_bahan'])); ?>', '<?php echo $material['stok']; ?>', '<?php echo htmlspecialchars(addslashes($material['satuan'])); ?>')"
+                                                        class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition duration-200">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button onclick="deleteMaterial('<?php echo $material['kd_bahan']; ?>', '<?php echo htmlspecialchars(addslashes($material['nama_bahan'])); ?>')" 
-                                                            class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200">
+                                                    <button onclick="deleteMaterial('<?php echo $material['kd_bahan']; ?>', '<?php echo htmlspecialchars(addslashes($material['nama_bahan'])); ?>')"
+                                                        class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
@@ -170,20 +169,20 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <!-- ... (JavaScript Anda tetap sama) ... -->
 <script>
-function showModal(title, content) {
-    document.getElementById('modalTitle').innerHTML = title;
-    document.getElementById('modalContent').innerHTML = content;
-    document.getElementById('modal').classList.remove('hidden');
-    document.getElementById('modal').classList.add('flex'); // Gunakan flex untuk centering
-}
+    function showModal(title, content) {
+        document.getElementById('modalTitle').innerHTML = title;
+        document.getElementById('modalContent').innerHTML = content;
+        document.getElementById('modal').classList.remove('hidden');
+        document.getElementById('modal').classList.add('flex'); // Gunakan flex untuk centering
+    }
 
-function closeModal() {
-    document.getElementById('modal').classList.add('hidden');
-    document.getElementById('modal').classList.remove('flex');
-}
+    function closeModal() {
+        document.getElementById('modal').classList.add('hidden');
+        document.getElementById('modal').classList.remove('flex');
+    }
 
-function showAddMaterialForm() {
-    const content = `
+    function showAddMaterialForm() {
+        const content = `
         <form method="POST" onsubmit="return validateForm(this)">
             <input type="hidden" name="action" value="add">
             <div class="space-y-4">
@@ -223,11 +222,11 @@ function showAddMaterialForm() {
             </div>
         </form>
     `;
-    showModal('Tambah Bahan Baku', content);
-}
+        showModal('Tambah Bahan Baku', content);
+    }
 
-function editMaterial(kd_bahan, nama, stok, satuan) {
-    const content = `
+    function editMaterial(kd_bahan, nama, stok, satuan) {
+        const content = `
         <form method="POST" onsubmit="return validateForm(this)">
             <input type="hidden" name="action" value="edit">
             <input type="hidden" name="kd_bahan" value="${kd_bahan}">
@@ -265,50 +264,50 @@ function editMaterial(kd_bahan, nama, stok, satuan) {
             </div>
         </form>
     `;
-    showModal('Edit Bahan Baku', content);
-}
+        showModal('Edit Bahan Baku', content);
+    }
 
-function deleteMaterial(id, nama) {
-    if (confirm(`Apakah Anda yakin ingin menghapus bahan "${nama}"?\n\nTindakan ini tidak dapat dibatalkan.`)) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `
+    function deleteMaterial(id, nama) {
+        if (confirm(`Apakah Anda yakin ingin menghapus bahan "${nama}"?\n\nTindakan ini tidak dapat dibatalkan.`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="kd_bahan" value="${id}">
         `;
-        document.body.appendChild(form);
-        form.submit();
+            document.body.appendChild(form);
+            form.submit();
+        }
     }
-}
 
-function validateForm(form) {
-    const nama = form.querySelector('input[name="nama_bahan"]').value.trim();
-    const stok = form.querySelector('input[name="stok"]').value.trim();
-    const satuan = form.querySelector('input[name="satuan"]').value.trim();
-    
-    if (!nama || !stok || !satuan) {
-        alert('Semua field dengan tanda * wajib diisi!');
-        return false;
-    }
-    
-    if (isNaN(stok) || parseInt(stok) < 0) {
-        alert('Stok harus berupa angka dan tidak boleh negatif!');
-        return false;
-    }
-    
-    return true;
-}
+    function validateForm(form) {
+        const nama = form.querySelector('input[name="nama_bahan"]').value.trim();
+        const stok = form.querySelector('input[name="stok"]').value.trim();
+        const satuan = form.querySelector('input[name="satuan"]').value.trim();
 
-document.addEventListener('DOMContentLoaded', (event) => {
-    const notifications = document.querySelectorAll('.notification');
-    notifications.forEach(notification => {
-        setTimeout(() => {
-            notification.style.transition = 'opacity 0.5s ease';
-            notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 500);
-        }, 3000);
+        if (!nama || !stok || !satuan) {
+            alert('Semua field dengan tanda * wajib diisi!');
+            return false;
+        }
+
+        if (isNaN(stok) || parseInt(stok) < 0) {
+            alert('Stok harus berupa angka dan tidak boleh negatif!');
+            return false;
+        }
+
+        return true;
+    }
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const notifications = document.querySelectorAll('.notification');
+        notifications.forEach(notification => {
+            setTimeout(() => {
+                notification.style.transition = 'opacity 0.5s ease';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        });
     });
-});
 </script>
 
 <?php require_once '../includes/footer.php'; ?>

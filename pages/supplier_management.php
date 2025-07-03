@@ -73,7 +73,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 
 <!-- Tambahkan kelas 'flex-container' untuk layout utama -->
-<div class="flex-container min-h-screen bg-gray-100">
+<div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <!-- Notifications -->

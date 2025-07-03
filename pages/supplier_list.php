@@ -9,13 +9,14 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!-- Tambahkan link ke file CSS responsif di dalam <head> -->
+
 <head>
     <!-- ... tag head Anda yang lain ... -->
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
 <!-- Tambahkan kelas 'flex-container' untuk layout utama -->
-<div class="flex-container min-h-screen bg-gray-100">
+<div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <div id="supplierManagement" class="section active">
@@ -23,7 +24,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <h2 class="text-3xl font-bold text-gray-800">Daftar Supplier</h2>
                 <p class="text-gray-600 mt-2">Menampilkan data semua supplier yang terdaftar</p>
             </div>
-            
+
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <div class="flex justify-between items-center">
@@ -33,7 +34,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="p-6">
                     <?php if (empty($suppliers)): ?>
                         <div class="text-center py-12">

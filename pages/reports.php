@@ -30,7 +30,7 @@ $saldo_kas = $total_penjualan - ($total_pembelian + $total_biaya);
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
-<div class="flex-container min-h-screen bg-gray-50">
+<div class="flex min-h-screen bg-gray-50">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <div id="reports" class="section active">
@@ -121,37 +121,50 @@ $saldo_kas = $total_penjualan - ($total_pembelian + $total_biaya);
                 <div class="overflow-x-auto">
                     <?php
                     // ... (Logika PHP untuk generate tabel tetap sama) ...
-                    $total = 0; $query = ""; $params = [$start_date, $end_date];
+                    $total = 0;
+                    $query = "";
+                    $params = [$start_date, $end_date];
                     switch ($report_type) {
                         case 'penjualan':
                             $query = "SELECT id_penjualan, tgl_jual, total_jual FROM penjualan WHERE tgl_jual BETWEEN ? AND ? ORDER BY tgl_jual";
                             $headers = ['ID', 'Tanggal', 'Total'];
                             $columns = ['id_penjualan', 'tgl_jual', 'total_jual'];
-                            $date_column = 'tgl_jual'; $total_column = 'total_jual'; break;
+                            $date_column = 'tgl_jual';
+                            $total_column = 'total_jual';
+                            break;
                         case 'pembelian':
                             $query = "SELECT p.id_pembelian, p.tgl_beli, s.nama_supplier, p.total_beli FROM pembelian p JOIN supplier s ON p.id_supplier = s.id_supplier WHERE p.tgl_beli BETWEEN ? AND ? ORDER BY p.tgl_beli";
                             $headers = ['ID', 'Tanggal', 'Supplier', 'Total'];
                             $columns = ['id_pembelian', 'tgl_beli', 'nama_supplier', 'total_beli'];
-                            $date_column = 'tgl_beli'; $total_column = 'total_beli'; break;
+                            $date_column = 'tgl_beli';
+                            $total_column = 'total_beli';
+                            break;
                         case 'penerimaan_kas':
                             $query = "SELECT id_penerimaan_kas, tgl_terima_kas, uraian, total FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ? ORDER BY tgl_terima_kas";
                             $headers = ['ID', 'Tanggal', 'Uraian', 'Total'];
                             $columns = ['id_penerimaan_kas', 'tgl_terima_kas', 'uraian', 'total'];
-                            $date_column = 'tgl_terima_kas'; $total_column = 'total'; break;
+                            $date_column = 'tgl_terima_kas';
+                            $total_column = 'total';
+                            break;
                         case 'pengeluaran_kas':
-                             $query = "SELECT id_pengeluaran_kas, tgl_pengeluaran_kas, uraian, total FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ? ORDER BY tgl_pengeluaran_kas";
-                             $headers = ['ID', 'Tanggal', 'Uraian', 'Total'];
-                             $columns = ['id_pengeluaran_kas', 'tgl_pengeluaran_kas', 'uraian', 'total'];
-                             $date_column = 'tgl_pengeluaran_kas'; $total_column = 'total'; break;
+                            $query = "SELECT id_pengeluaran_kas, tgl_pengeluaran_kas, uraian, total FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ? ORDER BY tgl_pengeluaran_kas";
+                            $headers = ['ID', 'Tanggal', 'Uraian', 'Total'];
+                            $columns = ['id_pengeluaran_kas', 'tgl_pengeluaran_kas', 'uraian', 'total'];
+                            $date_column = 'tgl_pengeluaran_kas';
+                            $total_column = 'total';
+                            break;
                         case 'buku_besar':
                             $query = "(SELECT tgl_terima_kas as tanggal, uraian, total as debit, 0 as kredit FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ?) UNION ALL (SELECT tgl_pengeluaran_kas as tanggal, uraian, 0 as debit, total as kredit FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ?) ORDER BY tanggal";
                             $params = [$start_date, $end_date, $start_date, $end_date];
                             $headers = ['Tanggal', 'Uraian', 'Debit', 'Kredit'];
                             $columns = ['tanggal', 'uraian', 'debit', 'kredit'];
-                            $date_column = 'tanggal'; break;
+                            $date_column = 'tanggal';
+                            break;
                     }
-                    $stmt = $pdo->prepare($query); $stmt->execute($params); $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    
+                    $stmt = $pdo->prepare($query);
+                    $stmt->execute($params);
+                    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
                     echo '<table class="min-w-full responsive-table">';
                     echo '<thead><tr>';
                     foreach ($headers as $header) {
@@ -159,11 +172,12 @@ $saldo_kas = $total_penjualan - ($total_pembelian + $total_biaya);
                         echo "<th class='px-6 py-3 $align text-sm font-semibold text-gray-700'>$header</th>";
                     }
                     echo '</tr></thead><tbody class="bg-white divide-y divide-gray-200">';
-                    
+
                     if (empty($data)) {
                         echo "<tr><td colspan='" . count($headers) . "' class='px-6 py-12 text-center text-gray-500'>Tidak ada data untuk periode yang dipilih.</td></tr>";
                     } else {
-                        $total_debit = 0; $total_kredit = 0;
+                        $total_debit = 0;
+                        $total_kredit = 0;
                         foreach ($data as $row) {
                             echo '<tr>';
                             foreach ($columns as $col) {
@@ -175,14 +189,15 @@ $saldo_kas = $total_penjualan - ($total_pembelian + $total_biaya);
                             }
                             echo '</tr>';
                             if ($report_type == 'buku_besar') {
-                                $total_debit += $row['debit']; $total_kredit += $row['kredit'];
+                                $total_debit += $row['debit'];
+                                $total_kredit += $row['kredit'];
                             } elseif (isset($total_column)) {
                                 $total += $row[$total_column];
                             }
                         }
                     }
                     echo '</tbody>';
-                    
+
                     if (!empty($data) && $report_type != 'buku_besar') {
                         echo '<tfoot class="bg-gray-100 font-bold">';
                         echo "<tr><td colspan='" . (count($headers) - 1) . "' class='px-6 py-4 text-right text-gray-700'>Total</td><td class='px-6 py-4 text-right'>" . formatCurrency($total) . "</td></tr>";
@@ -203,70 +218,104 @@ $saldo_kas = $total_penjualan - ($total_pembelian + $total_biaya);
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function( ) {
-    // ... (JavaScript untuk grafik tetap sama) ...
-    const comparisonCtx = document.getElementById('comparisonChart');
-    if (comparisonCtx) {
-        new Chart(comparisonCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Penjualan', 'Pembelian'],
-                datasets: [{
-                    data: [<?php echo $total_penjualan; ?>, <?php echo $total_pembelian; ?>],
-                    backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(239, 68, 68, 0.8)'],
-                    borderColor: ['#ffffff'], borderWidth: 4
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, font: { size: 14 } } } },
-                cutout: '70%'
-            }
-        });
-    }
-    <?php
-    $sales_trend = []; $labels_trend = [];
-    for ($i = 6; $i >= 0; $i--) {
-        $date = date('Y-m-d', strtotime("-$i days"));
-        $stmt = $pdo->prepare("SELECT COALESCE(SUM(total_jual), 0) as total FROM penjualan WHERE DATE(tgl_jual) = ?");
-        $stmt->execute([$date]);
-        $sales_trend[] = $stmt->fetchColumn();
-        $labels_trend[] = date('d M', strtotime($date));
-    }
-    ?>
-    const trendCtx = document.getElementById('trendChart');
-    if (trendCtx) {
-        new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: <?php echo json_encode($labels_trend); ?>,
-                datasets: [{
-                    label: 'Penjualan',
-                    data: <?php echo json_encode($sales_trend); ?>,
-                    borderColor: 'rgba(22, 163, 74, 1)', backgroundColor: 'rgba(22, 163, 74, 0.1)',
-                    borderWidth: 3, fill: true, tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return ' ' + context.dataset.label + ': ' + new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
+    document.addEventListener('DOMContentLoaded', function() {
+        // ... (JavaScript untuk grafik tetap sama) ...
+        const comparisonCtx = document.getElementById('comparisonChart');
+        if (comparisonCtx) {
+            new Chart(comparisonCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Penjualan', 'Pembelian'],
+                    datasets: [{
+                        data: [<?php echo $total_penjualan; ?>, <?php echo $total_pembelian; ?>],
+                        backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(239, 68, 68, 0.8)'],
+                        borderColor: ['#ffffff'],
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+        <?php
+        $sales_trend = [];
+        $labels_trend = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = date('Y-m-d', strtotime("-$i days"));
+            $stmt = $pdo->prepare("SELECT COALESCE(SUM(total_jual), 0) as total FROM penjualan WHERE DATE(tgl_jual) = ?");
+            $stmt->execute([$date]);
+            $sales_trend[] = $stmt->fetchColumn();
+            $labels_trend[] = date('d M', strtotime($date));
+        }
+        ?>
+        const trendCtx = document.getElementById('trendChart');
+        if (trendCtx) {
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: <?php echo json_encode($labels_trend); ?>,
+                    datasets: [{
+                        label: 'Penjualan',
+                        data: <?php echo json_encode($sales_trend); ?>,
+                        borderColor: 'rgba(22, 163, 74, 1)',
+                        backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.dataset.label + ': ' + new Intl.NumberFormat('id-ID', {
+                                        style: 'currency',
+                                        currency: 'IDR'
+                                    }).format(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => new Intl.NumberFormat('id-ID', {
+                                    notation: 'compact'
+                                }).format(value)
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
                             }
                         }
                     }
-                },
-                scales: {
-                    y: { beginAtZero: true, ticks: { callback: (value) => new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value) } },
-                    x: { grid: { display: false } }
                 }
-            }
-        });
-    }
-});
+            });
+        }
+    });
 </script>
 
 <?php require_once '../includes/footer.php'; ?>

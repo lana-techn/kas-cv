@@ -15,12 +15,12 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         $pdo->beginTransaction();
-        
+
         if ($_POST['action'] === 'add') {
             if (empty($_POST['kd_barang']) || empty($_POST['jumlah_produksi']) || empty($_POST['items'])) {
                 throw new Exception('Semua field harus diisi dan minimal satu bahan harus dipilih');
             }
-            
+
             $id_produksi = $_POST['id_produksi'] ?: generateId('PRD');
             $stmt = $pdo->prepare("INSERT INTO produksi (id_produksi, kd_barang, tgl_produksi, jumlah_produksi) VALUES (?, ?, ?, ?)");
             $stmt->execute([$id_produksi, $_POST['kd_barang'], date('Y-m-d'), $_POST['jumlah_produksi']]);
@@ -29,15 +29,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if (empty($item['kd_bahan']) || empty($item['jum_bahan'])) {
                     continue;
                 }
-                
+
                 $stmt = $pdo->prepare("SELECT stok FROM bahan WHERE kd_bahan = ?");
                 $stmt->execute([$item['kd_bahan']]);
                 $currentStock = $stmt->fetchColumn();
-                
+
                 if ($currentStock < $item['jum_bahan']) {
                     throw new Exception("Stok bahan {$item['kd_bahan']} tidak mencukupi");
                 }
-                
+
                 $id_detproduksi = generateId('DPR');
                 $stmt = $pdo->prepare("INSERT INTO detail_produksi (id_detproduksi, id_produksi, kd_bahan, satuan, jum_bahan) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$id_detproduksi, $id_produksi, $item['kd_bahan'], $item['satuan'], $item['jum_bahan']]);
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             $stmt = $pdo->prepare("UPDATE barang SET stok = stok + ? WHERE kd_barang = ?");
             $stmt->execute([$_POST['jumlah_produksi'], $_POST['kd_barang']]);
-            
+
             $pdo->commit();
             $message = 'Produksi berhasil ditambahkan';
         } elseif ($_POST['action'] === 'delete') {
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->execute([$_POST['id_produksi']]);
                 $stmt = $pdo->prepare("DELETE FROM produksi WHERE id_produksi = ?");
                 $stmt->execute([$_POST['id_produksi']]);
-                
+
                 $pdo->commit();
                 $message = 'Produksi berhasil dihapus';
             }
@@ -88,13 +88,14 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!-- Tambahkan link ke file CSS responsif di dalam <head> -->
+
 <head>
     <!-- ... tag head Anda yang lain ... -->
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
 <!-- Tambahkan kelas 'flex-container' untuk layout utama -->
-<div class="flex-container min-h-screen bg-gray-100">
+<div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <!-- Notifications -->
@@ -103,19 +104,19 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
             </div>
         <?php endif; ?>
-        
+
         <?php if ($error): ?>
             <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification">
                 <div class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span><?php echo htmlspecialchars($error); ?></span></div>
             </div>
         <?php endif; ?>
-        
+
         <div id="productionManagement" class="section active">
             <div class="mb-6">
                 <h2 class="text-3xl font-bold text-gray-800">Manajemen Produksi</h2>
                 <p class="text-gray-600 mt-2">Kelola data produksi barang jadi</p>
             </div>
-            
+
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <!-- Tambahkan kelas 'card-header' untuk layout responsif -->
@@ -130,7 +131,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="p-6">
                     <div class="overflow-x-auto">
                         <!-- Tambahkan kelas 'responsive-table' ke tabel -->
@@ -154,6 +155,9 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <td data-label="Jumlah" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['jumlah_produksi']); ?></td>
                                         <!-- Tambahkan kelas 'actions-cell' untuk kolom aksi -->
                                         <td class="px-6 py-4 text-center actions-cell">
+                                            <button onclick="showAddProductionForm()" class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition duration-200">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
                                             <button onclick="deleteProduction('<?php echo $production['id_produksi']; ?>')" class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -186,24 +190,24 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <script>
-let itemCount = 0;
-const materialsData = <?php echo json_encode($materials); ?>;
+    let itemCount = 0;
+    const materialsData = <?php echo json_encode($materials); ?>;
 
-function showModal(title, content) {
-    document.getElementById('modalTitle').innerHTML = title;
-    document.getElementById('modalContent').innerHTML = content;
-    document.getElementById('modal').classList.remove('hidden');
-    document.getElementById('modal').classList.add('flex');
-}
+    function showModal(title, content) {
+        document.getElementById('modalTitle').innerHTML = title;
+        document.getElementById('modalContent').innerHTML = content;
+        document.getElementById('modal').classList.remove('hidden');
+        document.getElementById('modal').classList.add('flex');
+    }
 
-function closeModal() {
-    document.getElementById('modal').classList.add('hidden');
-    document.getElementById('modal').classList.remove('flex');
-}
+    function closeModal() {
+        document.getElementById('modal').classList.add('hidden');
+        document.getElementById('modal').classList.remove('flex');
+    }
 
-function showAddProductionForm() {
-    itemCount = 0;
-    const content = `
+    function showAddProductionForm() {
+        itemCount = 0;
+        const content = `
         <form method="POST">
             <input type="hidden" name="action" value="add">
             <div class="space-y-4">
@@ -238,12 +242,12 @@ function showAddProductionForm() {
             </div>
         </form>
     `;
-    showModal('Tambah Data Produksi', content);
-    addItem(); // Langsung tambahkan satu item bahan saat form dibuka
-}
+        showModal('Tambah Data Produksi', content);
+        addItem(); // Langsung tambahkan satu item bahan saat form dibuka
+    }
 
-function addItem() {
-    const itemHtml = `
+    function addItem() {
+        const itemHtml = `
         <div id="item-${itemCount}" class="mb-2 p-2 border rounded">
             <div class="mb-2">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Bahan</label>
@@ -267,36 +271,36 @@ function addItem() {
             <button type="button" onclick="removeItem(${itemCount})" class="text-red-600 hover:text-red-900 text-sm">Hapus Bahan</button>
         </div>
     `;
-    document.getElementById('item-list').insertAdjacentHTML('beforeend', itemHtml);
-    itemCount++;
-}
+        document.getElementById('item-list').insertAdjacentHTML('beforeend', itemHtml);
+        itemCount++;
+    }
 
-function updateItemSatuan(index) {
-    const select = document.querySelector(`select[name="items[${index}][kd_bahan]"]`);
-    const selectedOption = select.options[select.selectedIndex];
-    document.querySelector(`input[name="items[${index}][satuan]"]`).value = selectedOption.dataset.satuan || '';
-}
+    function updateItemSatuan(index) {
+        const select = document.querySelector(`select[name="items[${index}][kd_bahan]"]`);
+        const selectedOption = select.options[select.selectedIndex];
+        document.querySelector(`input[name="items[${index}][satuan]"]`).value = selectedOption.dataset.satuan || '';
+    }
 
-function removeItem(index) {
-    document.getElementById(`item-${index}`).remove();
-}
+    function removeItem(index) {
+        document.getElementById(`item-${index}`).remove();
+    }
 
 
-function prepareItems() {
-    // Ensure all items are included in the form submission
-}
+    function prepareItems() {
+        // Ensure all items are included in the form submission
+    }
 
-function deleteProduction(id_produksi) {
-    if (confirm('Apakah Anda yakin ingin menghapus produksi ini?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `
+    function deleteProduction(id_produksi) {
+        if (confirm('Apakah Anda yakin ingin menghapus produksi ini?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id_produksi" value="${id_produksi}">
         `;
-        document.body.appendChild(form);
-        form.submit();
+            document.body.appendChild(form);
+            form.submit();
+        }
     }
-}
 </script>
 <?php require_once '../includes/footer.php'; ?>
