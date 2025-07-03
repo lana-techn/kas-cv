@@ -8,7 +8,8 @@
  * @param mixed $num Angka yang akan diformat.
  * @return string Angka dalam format mata uang (e.g., "Rp 100.000").
  */
-function formatCurrency($num) {
+function formatCurrency($num)
+{
     // 1. Cek jika input valid. Jika tidak, kembalikan nilai default.
     if (!is_numeric($num) && !is_string($num)) {
         return 'Rp 0';
@@ -31,15 +32,14 @@ function formatCurrency($num) {
  * @param string $prefix Prefix untuk ID (e.g., 'BL', 'JUL').
  * @return string ID unik yang dihasilkan.
  */
-function generateId($prefix) {
+function generateId($prefix)
+{
     // Pastikan prefix adalah string
     $prefix = (string) $prefix;
     // Ambil 6 digit terakhir dari timestamp untuk variasi
     $timestamp = substr(time(), -6);
     // Hasilkan angka acak 2 digit
     $random = str_pad(mt_rand(0, 99), 2, '0', STR_PAD_LEFT);
-    
+
     return strtoupper($prefix) . $timestamp . $random;
 }
-
-?>

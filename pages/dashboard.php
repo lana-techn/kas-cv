@@ -2,13 +2,10 @@
 require_once '../config/db_connect.php';
 require_once '../includes/function.php'; // Pastikan fungsi formatCurrency() ada di sini
 require_once '../includes/header.php';
-
 // === DATA FETCHING LOGIC ===
 // Semua query dan pengolahan data dikumpulkan di sini untuk memisahkan logika dari tampilan.
-
 $userLevel = $_SESSION['user']['level'] ?? 'guest';
 $data = []; // Inisialisasi array untuk menampung semua data yang akan dikirim ke view.
-
 // Fungsi untuk format waktu "time ago"
 // Didefinisikan sekali di level atas untuk menghindari duplikasi.
 if (!function_exists('time_ago')) {
@@ -24,8 +21,6 @@ if (!function_exists('time_ago')) {
         return "$days hari lalu";
     }
 }
-
-
 // --- Data Fetching Berdasarkan Role ---
 
 if ($userLevel === 'admin') {
@@ -34,8 +29,6 @@ if ($userLevel === 'admin') {
     $data['totalSuppliers'] = $pdo->query("SELECT COUNT(*) FROM supplier")->fetchColumn();
     // (Data untuk "Stok Menipis" dan "Produksi Berjalan" bisa ditambahkan di sini)
     // Contoh: $data['stokMenipis'] = $pdo->query("SELECT COUNT(*) FROM bahan WHERE stok < 20")->fetchColumn();
-
-
     // --- Data untuk Aktivitas Terbaru Admin ---
     $latestActivities = [];
     $stmt_users = $pdo->query("SELECT username, id_user FROM user ORDER BY id_user DESC LIMIT 5");
@@ -126,13 +119,11 @@ if ($userLevel === 'admin') {
     $data['purchasesChartData'] = json_encode($purchasesData);
 }
 ?>
-
 <div class="flex min-h-screen">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <div id="dashboard" class="section active">
             <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
-
             <?php if ($userLevel === 'admin'): ?>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 items-start">
                     <div class="group relative bg-gradient-to-br from-blue-500 to-indigo-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
@@ -201,7 +192,6 @@ if ($userLevel === 'admin') {
                         </table>
                     </div>
                 </div>
-
             <?php elseif ($userLevel === 'pegawai'): ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 items-start">
                     <div class="group relative bg-gradient-to-br from-green-400 to-cyan-500 p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
@@ -220,7 +210,6 @@ if ($userLevel === 'admin') {
                         <a href="cost_management.php" class="block w-full text-center mt-4 bg-white text-yellow-800 font-bold py-3 rounded-lg">Input Biaya</a>
                     </div>
                 </div>
-
                 <div class="mb-8">
                     <h3 class="text-2xl font-bold text-gray-800 mb-4">🚨 Peringatan Stok</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -241,31 +230,31 @@ if ($userLevel === 'admin') {
                         </div>
                     </div>
                 </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">5 Transaksi Terakhir Anda</h3>
-                    <table class="min-w-full">
-                        <tbody>
-                            <?php foreach ($data['recentTransactions'] as $trans): ?>
-                                <tr class="border-b last:border-b-0 hover:bg-gray-50">
-                                    <td class="py-3 px-2 text-center w-10">
-                                        <i class="fas <?php echo $trans['tipe'] === 'penjualan' ? 'fa-arrow-up text-green-500' : 'fa-arrow-down text-red-500'; ?>"></i>
-                                    </td>
-                                    <td class="py-3 px-2">
-                                        <p class="font-semibold text-gray-800">#<?php echo htmlspecialchars($trans['id']); ?></p>
-                                    </td>
-                                    <td class="py-3 px-2 text-right font-semibold text-gray-700">
-                                        <?php echo formatCurrency($trans['total']); ?>
-                                    </td>
-                                    <td class="py-3 px-2 text-right text-sm text-gray-500">
-                                        <?php echo date('d M Y', strtotime($trans['tanggal'])); ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-md overflow-hidden">
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-4">5 Transaksi Terakhir Anda</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full table-auto">
+                            <tbody class="divide-y divide-gray-200">
+                                <?php foreach ($data['recentTransactions'] as $trans): ?>
+                                    <tr class="hover:bg-gray-50 transition-colors">
+                                        <td class="py-3 px-2 sm:px-3 text-center w-8 sm:w-10">
+                                            <i class="fas <?php echo $trans['tipe'] === 'penjualan' ? 'fa-arrow-up text-green-500' : 'fa-arrow-down text-red-500'; ?>"></i>
+                                        </td>
+                                        <td class="py-3 px-2 sm:px-3 whitespace-nowrap">
+                                            <p class="font-semibold text-gray-800 text-sm sm:text-base">#<?php echo htmlspecialchars($trans['id']); ?></p>
+                                        </td>
+                                        <td class="py-3 px-2 sm:px-3 text-right whitespace-nowrap">
+                                            <span class="font-semibold text-gray-700 text-sm sm:text-base"><?php echo formatCurrency($trans['total']); ?></span>
+                                        </td>
+                                        <td class="py-3 px-2 sm:px-3 text-right whitespace-nowrap">
+                                            <span class="text-xs sm:text-sm text-gray-500"><?php echo date('d M Y', strtotime($trans['tanggal'])); ?></span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-
             <?php elseif ($userLevel === 'pemilik'): ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-lg shadow">
@@ -294,7 +283,6 @@ if ($userLevel === 'admin') {
         </div>
     </main>
 </div>
-
 <?php if ($userLevel === 'pemilik'): ?>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
