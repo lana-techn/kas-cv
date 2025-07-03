@@ -31,12 +31,50 @@ if (!isset($_SESSION['user']) && !in_array(basename($_SERVER['PHP_SELF']), ['log
             font-family: 'Inter', sans-serif;
         }
     </style>
+    <script>
+        function confirmLogout() {
+            if (confirm('Apakah Anda yakin ingin keluar?')) {
+                window.location.href = '/kas-cv/auth/logout.php';
+            }
+        }
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            const closeSidebarButton = document.getElementById('close-sidebar-button');
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebarOverlay.classList.toggle('hidden');
+            }
+
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', toggleSidebar);
+            }
+
+            if (closeSidebarButton) {
+                closeSidebarButton.addEventListener('click', toggleSidebar);
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', toggleSidebar);
+            }
+        });
+    </script>
 </head>
 <body class="bg-gray-50 antialiased">
     <?php if (isset($_SESSION['user'])): ?>
     <header class="bg-white shadow-md sticky top-0 z-30">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
+                <!-- Hamburger menu button -->
+                <button id="sidebar-toggle" class="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+
                 <div class="flex-shrink-0">
                     <a href="../pages/dashboard.php" class="flex items-center space-x-2">
                          <img class="h-10 w-auto" src="../assets/images/logo.png" alt="Logo CV. Karya Wahana Sentosa">
