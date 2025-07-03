@@ -3,12 +3,19 @@ require_once '../config/db_connect.php';
 require_once '../includes/function.php';
 require_once '../includes/header.php';
 
-// Mengambil semua data  dari barang tabel 'barang'
+// Mengambil semua data dari tabel 'barang'
 $stmt = $pdo->query("SELECT * FROM barang ORDER BY nama_barang");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<div class="flex min-h-screen bg-gray-100">
+<!-- Tambahkan link ke file CSS responsif di dalam <head> -->
+<head>
+    <!-- ... tag head Anda yang lain ... -->
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+
+<!-- Tambahkan kelas 'flex-container' untuk layout utama -->
+<div class="flex-container min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <div id="productManagement" class="section active">
@@ -21,7 +28,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h3 class="text-xl font-semibold text-white">Daftar barang</h3>
+                            <h3 class="text-xl font-semibold text-white">Informasi Barang</h3>
                             <p class="text-blue-100 mt-1">Total: <?php echo count($products); ?> barang</p>
                         </div>
                     </div>
@@ -36,7 +43,8 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full">
+                            <!-- Tambahkan kelas 'responsive-table' ke tabel -->
+                            <table class="min-w-full responsive-table">
                                 <thead>
                                     <tr class="border-b border-gray-200">
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Kode Barang</th>
@@ -47,9 +55,10 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <tbody class="divide-y divide-gray-200">
                                     <?php foreach ($products as $product): ?>
                                         <tr class="hover:bg-gray-50 transition duration-200">
-                                            <td class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($product['kd_barang']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($product['nama_barang']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($product['stok']); ?></td>
+                                            <!-- Tambahkan atribut data-label untuk setiap sel -->
+                                            <td data-label="Kode" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($product['kd_barang']); ?></td>
+                                            <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($product['nama_barang']); ?></td>
+                                            <td data-label="Stok" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($product['stok']); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
