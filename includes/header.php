@@ -3,7 +3,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 if (!isset($_SESSION['user']) && !in_array(basename($_SERVER['PHP_SELF']), ['login.php', 'logout.php'])) {
-    // Redirect ke root login, path disesuaikan agar lebih robust
     header('Location: /kas-cv/index.php');
     exit;
 }
@@ -26,13 +25,12 @@ if (!isset($_SESSION['user']) && !in_array(basename($_SERVER['PHP_SELF']), ['log
     <link rel="stylesheet" href="../assets/css/styles.css">
 
     <style>
-        /* Menambahkan font default yang lebih modern */
         body {
             font-family: 'Inter', sans-serif;
         }
     </style>
     <script>
-        function confirmLogout() {
+        function confirmLogout( ) {
             if (confirm('Apakah Anda yakin ingin keluar?')) {
                 window.location.href = '/kas-cv/auth/logout.php';
             }
@@ -67,10 +65,10 @@ if (!isset($_SESSION['user']) && !in_array(basename($_SERVER['PHP_SELF']), ['log
 </head>
 <body class="bg-gray-50 antialiased">
     <?php if (isset($_SESSION['user'])): ?>
-    <header class="bg-white shadow-md sticky top-0 z-30">
+    <header class="bg-white shadow-md sticky top-0 z-40">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <!-- Hamburger menu button -->
+                <!-- Tombol hamburger menu -->
                 <button id="sidebar-toggle" class="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
                     <i class="fas fa-bars fa-lg"></i>
                 </button>

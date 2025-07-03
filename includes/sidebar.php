@@ -4,7 +4,6 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $menuItems = [
-    // ... (array menuItems Anda tetap sama)
     ['id' => 'dashboard', 'title' => 'Dashboard', 'icon' => 'fas fa-tachometer-alt', 'file' => 'dashboard.php', 'roles' => ['admin', 'pegawai', 'pemilik']],
     ['id' => 'userManagement', 'title' => 'User', 'icon' => 'fas fa-users', 'file' => 'user_management.php', 'roles' => ['admin']],
     ['id' => 'materialManagement', 'title' => 'Bahan', 'icon' => 'fas fa-cubes', 'file' => 'material_management.php', 'roles' => ['admin']],
@@ -25,7 +24,7 @@ $menuItems = [
 <aside id="sidebar" class="bg-blue-800 text-white w-64 p-4 space-y-6 flex-shrink-0
                            fixed inset-y-0 left-0 transform -translate-x-full 
                            lg:relative lg:translate-x-0 
-                           transition-transform duration-300 ease-in-out z-20
+                           transition-transform duration-300 ease-in-out z-50
                            overflow-y-auto">
     <div class="flex items-center justify-between">
         <h2 class="text-xl font-semibold">Menu</h2>
@@ -53,4 +52,4 @@ $menuItems = [
 </aside>
 
 <!-- Overlay untuk mobile saat sidebar terbuka -->
-<div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
+<div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden"></div>
