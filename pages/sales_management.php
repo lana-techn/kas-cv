@@ -3,18 +3,16 @@ require_once '../config/db_connect.php';
 require_once '../includes/function.php';
 require_once '../includes/header.php';
 
+// ... (Logika PHP Anda tetap sama) ...
 if (!in_array($_SESSION['user']['level'], ['admin', 'pegawai'])) {
     header('Location: dashboard.php');
     exit;
 }
-
 $message = '';
 $error = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         $pdo->beginTransaction();
-        
         if ($_POST['action'] === 'add') {
             if (empty($_POST['tgl_jual']) || !isset($_POST['total_jual']) || !isset($_POST['bayar'])) {
                 throw new Exception('Semua field utama (tanggal, total, bayar) harus diisi.');
@@ -25,39 +23,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($_POST['bayar'] < $_POST['total_jual']) {
                 throw new Exception('Jumlah bayar tidak boleh kurang dari total penjualan.');
             }
-            
             $id_penjualan = $_POST['id_penjualan'] ?: generateId('JUL');
             $stmt = $pdo->prepare("INSERT INTO penjualan (id_penjualan, tgl_jual, total_jual, bayar, kembali) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([$id_penjualan, $_POST['tgl_jual'], $_POST['total_jual'], $_POST['bayar'], $_POST['kembali']]);
-
             foreach ($_POST['items'] as $item) {
                 if (empty($item['kd_barang']) || empty($item['qty']) || empty($item['harga_jual'])) {
                     continue;
                 }
-                
-                // Pengecekan Stok (Logika yang sudah ada tetap dipertahankan)
                 $stmt_stock = $pdo->prepare("SELECT nama_barang, stok FROM barang WHERE kd_barang = ?");
                 $stmt_stock->execute([$item['kd_barang']]);
                 $product_stock = $stmt_stock->fetch(PDO::FETCH_ASSOC);
-                
                 if (!$product_stock || $product_stock['stok'] < $item['qty']) {
                     throw new Exception("Stok untuk '" . ($product_stock['nama_barang'] ?? $item['kd_barang']) . "' tidak mencukupi (tersisa: " . ($product_stock['stok'] ?? 0) . ")");
                 }
-                
                 $id_detail_jual = generateId('DJL');
                 $stmt = $pdo->prepare("INSERT INTO detail_penjualan (id_detail_jual, id_penjualan, kd_barang, harga_jual, qty, subtotal) VALUES (?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$id_detail_jual, $id_penjualan, $item['kd_barang'], $item['harga_jual'], $item['qty'], $item['subtotal']]);
-                
                 $stmt = $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?");
                 $stmt->execute([$item['qty'], $item['kd_barang']]);
             }
             $stmt = $pdo->prepare("INSERT INTO penerimaan_kas (id_penerimaan_kas, id_penjualan, tgl_terima_kas, uraian, total) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([generateId('PKS'), $id_penjualan, $_POST['tgl_jual'], 'Penjualan Produk ' . $id_penjualan, $_POST['total_jual']]);
-            
             $pdo->commit();
             $message = 'Penjualan berhasil disimpan dengan ID: ' . $id_penjualan;
         } elseif ($_POST['action'] === 'delete') {
-            // Logika Hapus (Tetap Sama)
             $stmt = $pdo->prepare("SELECT kd_barang, qty FROM detail_penjualan WHERE id_penjualan = ?");
             $stmt->execute([$_POST['id_penjualan']]);
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -71,7 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->execute([$_POST['id_penjualan']]);
             $stmt = $pdo->prepare("DELETE FROM penjualan WHERE id_penjualan = ?");
             $stmt->execute([$_POST['id_penjualan']]);
-            
             $pdo->commit();
             $message = 'Penjualan berhasil dihapus';
         }
@@ -87,133 +75,151 @@ $stmt = $pdo->query("SELECT kd_barang, nama_barang, stok FROM barang");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $today = date('Y-m-d');
 ?>
-<div class="flex min-h-screen bg-gray-100">
+
+<head>
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+
+<div class="flex-container min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
-        <div id="notification-container" class="fixed top-5 right-5 z-50 space-y-2">
-            <?php if ($message): ?>
-            <div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification shadow-lg">
-                <i class="fas fa-check-circle mr-2"></i> <?php echo htmlspecialchars($message); ?>
+        <!-- Notifikasi -->
+        <?php if ($message): ?>
+            <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification">
+                <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
             </div>
-            <?php endif; ?>
-            <?php if ($error): ?>
-            <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification shadow-lg">
-                <i class="fas fa-exclamation-circle mr-2"></i> <?php echo htmlspecialchars($error); ?>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification">
+                <div class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span><?php echo htmlspecialchars($error); ?></span></div>
             </div>
-            <?php endif; ?>
-        </div>
+        <?php endif; ?>
 
         <div id="salesManagement" class="section active">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800">Manajemen Penjualan</h2>
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-700">Daftar Transaksi Penjualan</h3>
-                    <button onclick="showAddSaleForm()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-transform transform hover:scale-105">
-                        <i class="fas fa-plus mr-2"></i>Tambah Penjualan
-                    </button>
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">Manajemen Penjualan</h2>
+                <p class="text-gray-600 mt-2">Kelola transaksi penjualan produk jadi</p>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+                    <div class="flex justify-between items-center card-header">
+                        <div>
+                            <h3 class="text-xl font-semibold text-white">Daftar Penjualan</h3>
+                            <p class="text-blue-100 mt-1">Total: <?php echo count($sales); ?> transaksi</p>
+                        </div>
+                        <button onclick="showAddSaleForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>Tambah Penjualan
+                        </button>
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full table-auto">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID Penjualan</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="saleTableBody" class="bg-white divide-y divide-gray-200">
-                            <?php foreach ($sales as $sale): ?>
+                
+                <div class="p-6">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full responsive-table">
+                            <thead>
                                 <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono"><?php echo htmlspecialchars($sale['id_penjualan']); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo date('d M Y', strtotime($sale['tgl_jual'])); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold"><?php echo formatCurrency($sale['total_jual']); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
-                                        <a href="faktur_penjualan.php?id=<?php echo $sale['id_penjualan']; ?>" class="text-blue-600 hover:text-blue-800 mr-3" title="Lihat Faktur">
-                                            <i class="fas fa-file-invoice"></i>
-                                        </a>
-                                        <button onclick="deleteSale('<?php echo $sale['id_penjualan']; ?>')" class="text-red-600 hover:text-red-800" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Penjualan</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Tanggal</th>
+                                    <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">Total</th>
+                                    <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Aksi</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <?php foreach ($sales as $sale): ?>
+                                    <tr>
+                                        <td data-label="ID" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($sale['id_penjualan']); ?></td>
+                                        <td data-label="Tanggal" class="px-6 py-4 text-sm text-gray-900"><?php echo date('d M Y', strtotime($sale['tgl_jual'])); ?></td>
+                                        <td data-label="Total" class="px-6 py-4 text-sm text-gray-900 text-right font-semibold"><?php echo formatCurrency($sale['total_jual']); ?></td>
+                                        <td class="px-6 py-4 text-center actions-cell">
+                                            <div class="flex justify-center space-x-2">
+                                                <a href="faktur_penjualan.php?id=<?php echo $sale['id_penjualan']; ?>" class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-100" title="Lihat Faktur">
+                                                    <i class="fas fa-file-invoice"></i>
+                                                </a>
+                                                <button onclick="deleteSale('<?php echo $sale['id_penjualan']; ?>')" class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-100" title="Hapus">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="sale-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center z-40 transition-opacity">
-            <div class="bg-gray-100 rounded-lg shadow-2xl w-full max-w-5xl mx-4 transform transition-all" style="max-height: 90vh;">
-                <div class="flex justify-between items-center p-4 border-b border-gray-300">
-                    <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-cash-register mr-3"></i>Input Data Penjualan</h3>
-                    <button type="button" onclick="closeModalSales()" class="text-gray-500 hover:text-red-600 text-2xl" title="Batal dan Tutup">
-                        <i class="fas fa-times-circle"></i>
-                    </button>
+        <div id="sale-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
+            <div class="bg-gray-50 rounded-xl shadow-2xl w-full max-w-5xl mx-auto transform transition-all max-h-[90vh] flex flex-col">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-5 rounded-t-xl flex-shrink-0">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-white"><i class="fas fa-cash-register mr-3"></i>Input Data Penjualan</h3>
+                        <button type="button" onclick="closeModalSales()" class="text-white hover:text-gray-200 text-2xl" title="Tutup">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <form id="sale-form" method="POST">
-                    <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 140px);">
+                <form id="sale-form" method="POST" class="flex flex-col flex-grow">
+                    <div class="p-6 overflow-y-auto flex-grow">
                         <input type="hidden" name="action" value="add">
                         
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">ID Penjualan</label>
-                                <input type="text" name="id_penjualan" value="<?php echo generateId('JUL'); ?>" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200 cursor-not-allowed">
+                                <label class="block text-gray-700 text-sm font-semibold mb-2">ID Penjualan</label>
+                                <input type="text" name="id_penjualan" value="<?php echo generateId('JUL'); ?>" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200">
                             </div>
                             <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal Penjualan</label>
-                                <input type="date" name="tgl_jual" value="<?php echo $today; ?>" max="<?php echo $today; ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <label class="block text-gray-700 text-sm font-semibold mb-2">Tanggal</label>
+                                <input type="date" name="tgl_jual" value="<?php echo $today; ?>" max="<?php echo $today; ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                             </div>
                         </div>
 
-                        <div class="border-t border-b border-gray-300 py-4">
+                        <div class="border-t border-gray-300 pt-4">
                             <div class="flex justify-between items-center mb-3">
-                                <h4 class="text-md font-bold text-gray-700">Item Penjualan</h4>
-                                <button type="button" onclick="addItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-md text-sm shadow-sm">
-                                    <i class="fas fa-plus mr-1"></i> Baris Baru
+                                <h4 class="text-md font-semibold text-gray-700">Item Penjualan</h4>
+                                <button type="button" onclick="addItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-md text-sm">
+                                    <i class="fas fa-plus mr-1"></i> Tambah Item
                                 </button>
                             </div>
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full">
-                                    <thead class="bg-gray-200">
-                                        <tr>
-                                            <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-2/5">Nama Produk</th>
-                                            <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Harga Jual</th>
-                                            <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Kuantitas</th>
-                                            <th class="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase w-1/5">Subtotal</th>
-                                            <th class="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="item-list" class="bg-white"></tbody>
-                                </table>
-                            </div>
+                            <table class="min-w-full responsive-form-table">
+                                <thead>
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-2/5">Nama Produk</th>
+                                        <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Harga</th>
+                                        <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Qty</th>
+                                        <th class="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase w-1/5">Subtotal</th>
+                                        <th class="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="item-list"></tbody>
+                            </table>
                         </div>
                         
-                        <div class="flex justify-end mt-6">
-                            <div class="w-full md:w-1/3 space-y-3">
+                        <div class="flex flex-col md:flex-row justify-end mt-6">
+                            <div class="w-full md:w-2/5 space-y-3">
                                 <div>
-                                    <label class="block text-gray-700 text-sm font-bold">Total Penjualan</label>
-                                    <input type="text" id="total_display" value="Rp 0" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-lg">
+                                    <label class="flex justify-between items-center text-gray-700 text-sm font-semibold"><span>Total Penjualan</span></label>
+                                    <input type="text" id="total_display" value="Rp 0" readonly class="w-full px-3 py-2 border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-xl">
                                     <input type="hidden" name="total_jual" id="total_jual" value="0">
                                 </div>
                                 <div>
-                                    <label class="block text-gray-700 text-sm font-bold">Jumlah Bayar</label>
-                                    <input type="number" name="bayar" id="bayar" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-right font-bold text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="updateKembali()">
+                                    <label class="block text-gray-700 text-sm font-semibold">Jumlah Bayar</label>
+                                    <input type="number" name="bayar" id="bayar" required class="w-full px-3 py-2 border-gray-300 rounded-lg text-right font-bold text-xl" oninput="updateKembali()">
                                 </div>
                                 <div>
-                                    <label class="block text-gray-700 text-sm font-bold">Kembali</label>
-                                    <input type="text" id="kembali_display" value="Rp 0" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-lg">
+                                    <label class="block text-gray-700 text-sm font-semibold">Kembali</label>
+                                    <input type="text" id="kembali_display" value="Rp 0" readonly class="w-full px-3 py-2 border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-xl">
                                     <input type="hidden" name="kembali" id="kembali" value="0">
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex justify-end space-x-4 p-4 bg-gray-200 border-t border-gray-300">
-                        <button type="button" onclick="closeModalSales()" class="bg-gray-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg shadow-sm">Batal</button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-sm">Simpan Transaksi</button>
+                    <div class="flex justify-end space-x-4 p-4 bg-gray-200 border-t border-gray-300 flex-shrink-0">
+                        <button type="button" onclick="closeModalSales()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Batal</button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Simpan Transaksi</button>
                     </div>
                 </form>
             </div>
@@ -222,42 +228,41 @@ $today = date('Y-m-d');
 </div>
 
 <template id="item-template">
-    <tr class="item-row border-b">
-        <td class="p-2">
-            <select name="kd_barang" required class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" onchange="checkStock(this)">
+    <tr class="item-row">
+        <td data-label="Produk">
+            <select name="kd_barang" required class="w-full p-2 border border-gray-300 rounded-md" onchange="checkStock(this)">
                 <option value="" disabled selected>Cari Produk...</option>
                 <?php foreach ($products as $product): ?>
                     <option value="<?php echo $product['kd_barang']; ?>" data-stok="<?php echo $product['stok']; ?>"><?php echo htmlspecialchars($product['nama_barang']) . ' (Stok: ' . $product['stok'] . ')'; ?></option>
                 <?php endforeach; ?>
             </select>
         </td>
-        <td class="p-2">
+        <td data-label="Harga">
             <input type="number" name="harga_jual" required class="w-full p-2 border border-gray-300 rounded-md text-right" placeholder="0" oninput="updateTotal()">
         </td>
-        <td class="p-2">
+        <td data-label="Qty">
             <input type="number" name="qty" required class="w-full p-2 border border-gray-300 rounded-md text-right" placeholder="0" oninput="updateTotal(); checkStock(this);">
         </td>
-        <td class="p-2">
-            <input type="text" name="subtotal" readonly class="w-full p-2 border-gray-300 rounded-md bg-gray-200 text-right font-semibold">
+        <td data-label="Subtotal">
+            <input type="text" name="subtotal_display" readonly class="w-full p-2 border-gray-300 rounded-md bg-gray-200 text-right font-semibold">
+            <input type="hidden" name="subtotal">
         </td>
-        <td class="p-2 text-center">
+        <td>
             <button type="button" class="text-red-500 hover:text-red-700" onclick="removeItem(this)" title="Hapus item">
-                <i class="fas fa-trash-alt"></i>
+                <i class="fas fa-trash-alt fa-lg"></i>
             </button>
         </td>
     </tr>
 </template>
 
 <script>
-let itemCount = 0;
 const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
 
 function showAddSaleForm() {
     document.getElementById('sale-form').reset();
     document.getElementById('item-list').innerHTML = '';
-    itemCount = 0;
+    addItem();
     updateTotal();
-    
     document.getElementById('sale-modal').classList.remove('hidden');
 }
 
@@ -267,15 +272,15 @@ function closeModalSales() {
 
 function addItem() {
     const template = document.getElementById('item-template').content.cloneNode(true);
-    const tr = template.querySelector('tr');
+    const itemCount = document.querySelectorAll('#item-list tr').length;
     
-    tr.querySelector('[name="kd_barang"]').name = `items[${itemCount}][kd_barang]`;
-    tr.querySelector('[name="harga_jual"]').name = `items[${itemCount}][harga_jual]`;
-    tr.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
-    tr.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
+    template.querySelector('[name="kd_barang"]').name = `items[${itemCount}][kd_barang]`;
+    template.querySelector('[name="harga_jual"]').name = `items[${itemCount}][harga_jual]`;
+    template.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
+    template.querySelector('[name="subtotal_display"]').name = `items[${itemCount}][subtotal_display]`;
+    template.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
 
-    document.getElementById('item-list').appendChild(tr);
-    itemCount++;
+    document.getElementById('item-list').appendChild(template);
 }
 
 function removeItem(button) {
@@ -289,7 +294,7 @@ function checkStock(element) {
     const qtyInput = row.querySelector('[name*="[qty]"]');
     const selectedOption = productSelect.options[productSelect.selectedIndex];
     
-    if (selectedOption) {
+    if (selectedOption && selectedOption.value) {
         const stok = parseInt(selectedOption.getAttribute('data-stok'), 10);
         const qty = parseInt(qtyInput.value, 10) || 0;
         
@@ -307,27 +312,27 @@ function updateTotal() {
         const harga = parseFloat(row.querySelector('[name*="[harga_jual]"]').value) || 0;
         const qty = parseFloat(row.querySelector('[name*="[qty]"]').value) || 0;
         const subtotal = harga * qty;
-        row.querySelector('[name*="[subtotal]"]').value = currencyFormatter.format(subtotal);
+        row.querySelector('[name*="[subtotal_display]"]').value = currencyFormatter.format(subtotal);
+        row.querySelector('[name*="[subtotal]"]').value = subtotal;
         total += subtotal;
     });
 
     document.getElementById('total_jual').value = total;
     document.getElementById('total_display').value = currencyFormatter.format(total);
-    
     updateKembali();
 }
 
 function updateKembali() {
     const total = parseFloat(document.getElementById('total_jual').value) || 0;
     const bayar = parseFloat(document.getElementById('bayar').value) || 0;
-    const kembali = bayar - total;
+    const kembali = bayar > total ? bayar - total : 0;
     
     document.getElementById('kembali').value = kembali;
     document.getElementById('kembali_display').value = currencyFormatter.format(kembali);
 }
 
 function deleteSale(id_penjualan) {
-    if (confirm('Apakah Anda yakin ingin menghapus transaksi penjualan ini? Aksi ini akan mengembalikan stok barang.')) {
+    if (confirm('Apakah Anda yakin ingin menghapus transaksi penjualan ini? Tindakan ini akan mengembalikan stok produk ke jumlah semula dan tidak dapat dibatalkan.')) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.innerHTML = `
@@ -345,8 +350,9 @@ document.addEventListener('DOMContentLoaded', function() {
             notification.style.transition = 'opacity 0.5s ease';
             notification.style.opacity = '0';
             setTimeout(() => notification.remove(), 500);
-        }, 5000);
+        }, 3000);
     });
 });
 </script>
+
 <?php require_once '../includes/footer.php'; ?>

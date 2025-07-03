@@ -1,9 +1,8 @@
 <?php
+// ... (Logika PHP Anda tetap sama) ...
 require_once '../config/db_connect.php';
 require_once '../includes/function.php';
 require_once '../includes/header.php';
-
-// Logika PHP untuk menangani form submission (Tidak ada perubahan di sini)
 if (!in_array($_SESSION['user']['level'], ['admin', 'pegawai'])) {
     header('Location: dashboard.php');
     exit;
@@ -70,90 +69,99 @@ $stmt = $pdo->query("SELECT kd_bahan, nama_bahan FROM bahan");
 $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $today = date('Y-m-d');
 ?>
-<div class="flex min-h-screen bg-gray-100">
+
+<head>
+    <!-- Pastikan file responsive.css sudah dimuat -->
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+
+<div class="flex-container min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
-        <div id="notification-container" class="fixed top-5 right-5 z-50 space-y-2">
-            <?php if ($message): ?>
-            <div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification shadow-lg">
-                <i class="fas fa-check-circle mr-2"></i> <?php echo htmlspecialchars($message); ?>
-            </div>
-            <?php endif; ?>
-            <?php if ($error): ?>
-            <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification shadow-lg">
-                <i class="fas fa-exclamation-circle mr-2"></i> <?php echo htmlspecialchars($error); ?>
-            </div>
-            <?php endif; ?>
-        </div>
-
+        <!-- ... (Bagian Notifikasi dan Header Halaman tetap sama) ... -->
         <div id="purchaseManagement" class="section active">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800">Manajemen Pembelian</h2>
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-700">Daftar Transaksi Pembelian</h3>
-                    <button onclick="showAddPurchaseForm()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-transform transform hover:scale-105">
-                        <i class="fas fa-plus mr-2"></i>Tambah Pembelian
-                    </button>
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">Manajemen Pembelian</h2>
+                <p class="text-gray-600 mt-2">Kelola transaksi pembelian bahan baku dari supplier</p>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+                    <div class="flex justify-between items-center card-header">
+                        <div>
+                            <h3 class="text-xl font-semibold text-white">Daftar Pembelian</h3>
+                            <p class="text-blue-100 mt-1">Total: <?php echo count($purchases); ?> transaksi</p>
+                        </div>
+                        <button onclick="showAddPurchaseForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>Tambah Pembelian
+                        </button>
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full table-auto">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID Pembelian</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Supplier</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="purchaseTableBody" class="bg-white divide-y divide-gray-200">
-                            <?php foreach ($purchases as $purchase): ?>
+                
+                <div class="p-6">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full responsive-table">
+                            <thead>
                                 <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono"><?php echo htmlspecialchars($purchase['id_pembelian']); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo date('d M Y', strtotime($purchase['tgl_beli'])); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($purchase['nama_supplier']); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold"><?php echo formatCurrency($purchase['total_beli']); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
-                                        <a href="faktur_pembelian.php?id=<?php echo $purchase['id_pembelian']; ?>" class="text-blue-600 hover:text-blue-800 mr-3" title="Lihat Faktur">
-                                            <i class="fas fa-file-invoice"></i>
-                                        </a>
-                                        <button onclick="deletePurchase('<?php echo $purchase['id_pembelian']; ?>')" class="text-red-600 hover:text-red-800" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Pembelian</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Tanggal</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Supplier</th>
+                                    <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">Total</th>
+                                    <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Aksi</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <?php foreach ($purchases as $purchase): ?>
+                                    <tr>
+                                        <td data-label="ID" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($purchase['id_pembelian']); ?></td>
+                                        <td data-label="Tanggal" class="px-6 py-4 text-sm text-gray-900"><?php echo date('d M Y', strtotime($purchase['tgl_beli'])); ?></td>
+                                        <td data-label="Supplier" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($purchase['nama_supplier']); ?></td>
+                                        <td data-label="Total" class="px-6 py-4 text-sm text-gray-900 text-right font-semibold"><?php echo formatCurrency($purchase['total_beli']); ?></td>
+                                        <td class="px-6 py-4 text-center actions-cell">
+                                            <div class="flex justify-center space-x-2">
+                                                <a href="faktur_pembelian.php?id=<?php echo $purchase['id_pembelian']; ?>" class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-100" title="Lihat Faktur">
+                                                    <i class="fas fa-file-invoice"></i>
+                                                </a>
+                                                <button onclick="deletePurchase('<?php echo $purchase['id_pembelian']; ?>')" class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-100" title="Hapus">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="purchase-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center z-40 transition-opacity">
-            <div class="bg-gray-100 rounded-lg shadow-2xl w-full max-w-5xl mx-4 transform transition-all" style="max-height: 90vh;">
-                <div class="flex justify-between items-center p-4 border-b border-gray-300">
-                    <h3 id="modalTitle" class="text-xl font-bold text-gray-800"><i class="fas fa-shopping-cart mr-3"></i>Input Data Pembelian</h3>
-                    <button type="button" onclick="closeModalPurchase()" class="text-gray-500 hover:text-red-600 text-2xl" title="Batal dan Tutup">
-                        <i class="fas fa-times-circle"></i>
-                    </button>
+        <!-- Modal Pembelian -->
+        <div id="purchase-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
+            <div class="bg-gray-50 rounded-xl shadow-2xl w-full max-w-5xl mx-auto transform transition-all max-h-[90vh] flex flex-col">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-5 rounded-t-xl flex-shrink-0">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-white"><i class="fas fa-shopping-cart mr-3"></i>Input Data Pembelian</h3>
+                        <button type="button" onclick="closeModalPurchase()" class="text-white hover:text-gray-200 text-2xl" title="Tutup"><i class="fas fa-times-circle"></i></button>
+                    </div>
                 </div>
 
-                <form id="purchase-form" method="POST">
-                    <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 140px);">
+                <form id="purchase-form" method="POST" class="flex flex-col flex-grow">
+                    <div class="p-6 overflow-y-auto flex-grow">
+                        <!-- ... (Bagian input ID, Tanggal, Supplier tetap sama) ... -->
                         <input type="hidden" name="action" value="add">
-                        
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">ID Pembelian</label>
-                                <input type="text" name="id_pembelian" value="<?php echo generateId('BL'); ?>" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200 cursor-not-allowed">
+                                <label class="block text-gray-700 text-sm font-semibold mb-2">ID Pembelian</label>
+                                <input type="text" name="id_pembelian" value="<?php echo generateId('BL'); ?>" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200">
                             </div>
                             <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal Pembelian</label>
-                                <input type="date" name="tgl_beli" value="<?php echo $today; ?>" max="<?php echo $today; ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <label class="block text-gray-700 text-sm font-semibold mb-2">Tanggal</label>
+                                <input type="date" name="tgl_beli" value="<?php echo $today; ?>" max="<?php echo $today; ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                             </div>
                             <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Pilih Supplier</label>
-                                <select name="id_supplier" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <label class="block text-gray-700 text-sm font-semibold mb-2">Supplier</label>
+                                <select name="id_supplier" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                     <option value="" disabled selected>-- Pilih Supplier --</option>
                                     <?php foreach ($suppliers as $supplier): ?>
                                         <option value="<?php echo $supplier['id_supplier']; ?>"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></option>
@@ -162,53 +170,50 @@ $today = date('Y-m-d');
                             </div>
                         </div>
 
-                        <div class="border-t border-b border-gray-300 py-4">
+                        <div class="border-t border-gray-300 pt-4">
                             <div class="flex justify-between items-center mb-3">
-                                <h4 class="text-md font-bold text-gray-700">Item Pembelian</h4>
-                                <button type="button" onclick="addItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-md text-sm shadow-sm">
-                                    <i class="fas fa-plus mr-1"></i> Baris Baru
-                                </button>
+                                <h4 class="text-md font-semibold text-gray-700">Item Pembelian</h4>
+                                <button type="button" onclick="addItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-md text-sm"><i class="fas fa-plus mr-1"></i> Tambah Item</button>
                             </div>
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full">
-                                    <thead class="bg-gray-200">
-                                        <tr>
-                                            <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-2/5">Nama Bahan</th>
-                                            <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Harga Beli</th>
-                                            <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Kuantitas</th>
-                                            <th class="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase w-1/5">Subtotal</th>
-                                            <th class="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="item-list" class="bg-white">
-                                        </tbody>
-                                </table>
-                            </div>
+                            <!-- Terapkan kelas 'responsive-form-table' di sini -->
+                            <table class="min-w-full responsive-form-table">
+                                <thead>
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-2/5">Nama Bahan</th>
+                                        <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Harga</th>
+                                        <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Qty</th>
+                                        <th class="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase w-1/5">Subtotal</th>
+                                        <th class="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="item-list"></tbody>
+                            </table>
                         </div>
                         
-                        <div class="flex justify-end mt-6">
-                            <div class="w-full md:w-1/3 space-y-3">
+                        <!-- ... (Bagian Total, Bayar, Kembali tetap sama) ... -->
+                        <div class="flex flex-col md:flex-row justify-end mt-6">
+                            <div class="w-full md:w-2/5 space-y-3">
                                 <div>
-                                    <label class="block text-gray-700 text-sm font-bold">Total Pembelian</label>
-                                    <input type="text" id="total_display" value="Rp 0" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-lg">
+                                    <label class="flex justify-between items-center text-gray-700 text-sm font-semibold"><span>Total Pembelian</span></label>
+                                    <input type="text" id="total_display" value="Rp 0" readonly class="w-full px-3 py-2 border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-xl">
                                     <input type="hidden" name="total_beli" id="total_beli" value="0">
                                 </div>
                                 <div>
-                                    <label class="block text-gray-700 text-sm font-bold">Jumlah Bayar</label>
-                                    <input type="number" name="bayar" id="bayar" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-right font-bold text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="updateKembali()">
+                                    <label class="block text-gray-700 text-sm font-semibold">Jumlah Bayar</label>
+                                    <input type="number" name="bayar" id="bayar" required class="w-full px-3 py-2 border-gray-300 rounded-lg text-right font-bold text-xl" oninput="updateKembali()">
                                 </div>
                                 <div>
-                                    <label class="block text-gray-700 text-sm font-bold">Kembali</label>
-                                    <input type="text" id="kembali_display" value="Rp 0" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-lg">
+                                    <label class="block text-gray-700 text-sm font-semibold">Kembali</label>
+                                    <input type="text" id="kembali_display" value="Rp 0" readonly class="w-full px-3 py-2 border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-xl">
                                     <input type="hidden" name="kembali" id="kembali" value="0">
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex justify-end space-x-4 p-4 bg-gray-200 border-t border-gray-300">
-                        <button type="button" onclick="closeModalPurchase()" class=" bg-gray-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg shadow-sm">Batal</button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-sm">Simpan Transaksi</button>
+                    <div class="flex justify-end space-x-4 p-4 bg-gray-200 border-t border-gray-300 flex-shrink-0">
+                        <button type="button" onclick="closeModalPurchase()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Batal</button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Simpan Transaksi</button>
                     </div>
                 </form>
             </div>
@@ -216,97 +221,87 @@ $today = date('Y-m-d');
     </main>
 </div>
 
+<!-- PERBAIKAN PADA TEMPLATE -->
 <template id="item-template">
-    <tr class="item-row border-b">
-        <td class="p-2">
-            <select name="kd_bahan" required class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
+    <tr class="item-row">
+        <!-- Tambahkan atribut data-label yang sesuai -->
+        <td data-label="Nama Bahan">
+            <select name="kd_bahan" required class="w-full p-2 border border-gray-300 rounded-md">
                 <option value="" disabled selected>Cari Bahan...</option>
                 <?php foreach ($materials as $material): ?>
                     <option value="<?php echo $material['kd_bahan']; ?>"><?php echo htmlspecialchars($material['nama_bahan']); ?></option>
                 <?php endforeach; ?>
             </select>
         </td>
-        <td class="p-2">
+        <td data-label="Harga Beli">
             <input type="number" name="harga_beli" required class="w-full p-2 border border-gray-300 rounded-md text-right" placeholder="0" oninput="updateTotal()">
         </td>
-        <td class="p-2">
+        <td data-label="Kuantitas">
             <input type="number" name="qty" required class="w-full p-2 border border-gray-300 rounded-md text-right" placeholder="0" oninput="updateTotal()">
         </td>
-        <td class="p-2">
-            <input type="text" name="subtotal" readonly class="w-full p-2 border-gray-300 rounded-md bg-gray-200 text-right font-semibold">
+        <td data-label="Subtotal">
+            <input type="text" name="subtotal_display" readonly class="w-full p-2 border-gray-300 rounded-md bg-gray-200 text-right font-semibold">
+            <input type="hidden" name="subtotal">
         </td>
-        <td class="p-2 text-center">
+        <!-- Beri kelas khusus untuk sel tombol hapus -->
+        <td class="delete-button-cell">
             <button type="button" class="text-red-500 hover:text-red-700" onclick="removeItem(this)" title="Hapus item">
-                <i class="fas fa-trash-alt"></i>
+                <i class="fas fa-trash-alt fa-lg"></i>
             </button>
         </td>
     </tr>
 </template>
 
+<!-- ... (JavaScript Anda tetap sama) ... -->
 <script>
-let itemCount = 0;
 const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
-
 function showAddPurchaseForm() {
     document.getElementById('purchase-form').reset();
     document.getElementById('item-list').innerHTML = '';
-    itemCount = 0;
+    addItem();
     updateTotal();
-    
-    const modal = document.getElementById('purchase-modal');
-    modal.classList.remove('hidden');
+    document.getElementById('purchase-modal').classList.remove('hidden');
 }
-
 function closeModalPurchase() {
-    const modal = document.getElementById('purchase-modal');
-    modal.classList.add('hidden');
+    document.getElementById('purchase-modal').classList.add('hidden');
 }
-
 function addItem() {
     const template = document.getElementById('item-template').content.cloneNode(true);
-    const tr = template.querySelector('tr');
-    
-    tr.querySelector('[name="kd_bahan"]').name = `items[${itemCount}][kd_bahan]`;
-    tr.querySelector('[name="harga_beli"]').name = `items[${itemCount}][harga_beli]`;
-    tr.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
-    tr.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
-
-    document.getElementById('item-list').appendChild(tr);
-    itemCount++;
+    const itemCount = document.querySelectorAll('#item-list tr').length;
+    template.querySelector('[name="kd_bahan"]').name = `items[${itemCount}][kd_bahan]`;
+    template.querySelector('[name="harga_beli"]').name = `items[${itemCount}][harga_beli]`;
+    template.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
+    template.querySelector('[name="subtotal_display"]').name = `items[${itemCount}][subtotal_display]`;
+    template.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
+    document.getElementById('item-list').appendChild(template);
 }
-
 function removeItem(button) {
     button.closest('.item-row').remove();
     updateTotal();
 }
-
 function updateTotal() {
     let total = 0;
     document.querySelectorAll('#item-list tr').forEach(row => {
         const harga = parseFloat(row.querySelector('[name*="[harga_beli]"]').value) || 0;
         const qty = parseFloat(row.querySelector('[name*="[qty]"]').value) || 0;
         const subtotal = harga * qty;
-        row.querySelector('[name*="[subtotal]"]').value = currencyFormatter.format(subtotal);
+        row.querySelector('[name*="[subtotal_display]"]').value = currencyFormatter.format(subtotal);
+        row.querySelector('[name*="[subtotal]"]').value = subtotal;
         total += subtotal;
     });
-
     document.getElementById('total_beli').value = total;
     document.getElementById('total_display').value = currencyFormatter.format(total);
-    
     updateKembali();
 }
-
 function updateKembali() {
     const total = parseFloat(document.getElementById('total_beli').value) || 0;
     const bayar = parseFloat(document.getElementById('bayar').value) || 0;
-    const kembali = bayar - total;
-    
+    const kembali = bayar > total ? bayar - total : 0;
     document.getElementById('kembali').value = kembali;
     document.getElementById('kembali_display').value = currencyFormatter.format(kembali);
 }
-
 function deletePurchase(id_pembelian) {
-    if (confirm('Apakah Anda yakin ingin menghapus transaksi pembelian ini? Aksi ini tidak dapat dibatalkan.')) {
+    if (confirm('Apakah Anda yakin ingin menghapus transaksi pembelian ini? Tindakan ini akan mengembalikan stok bahan ke jumlah semula dan tidak dapat dibatalkan.')) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.innerHTML = `
@@ -317,15 +312,15 @@ function deletePurchase(id_pembelian) {
         form.submit();
     }
 }
-
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.notification').forEach(notification => {
         setTimeout(() => {
             notification.style.transition = 'opacity 0.5s ease';
             notification.style.opacity = '0';
             setTimeout(() => notification.remove(), 500);
-        }, 5000);
+        }, 3000);
     });
 });
 </script>
+
 <?php require_once '../includes/footer.php'; ?>

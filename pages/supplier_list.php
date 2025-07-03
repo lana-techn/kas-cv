@@ -8,20 +8,27 @@ $stmt = $pdo->query("SELECT * FROM supplier ORDER BY nama_supplier");
 $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<div class="flex min-h-screen bg-gray-100">
+<!-- Tambahkan link ke file CSS responsif di dalam <head> -->
+<head>
+    <!-- ... tag head Anda yang lain ... -->
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+
+<!-- Tambahkan kelas 'flex-container' untuk layout utama -->
+<div class="flex-container min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <div id="supplierManagement" class="section active">
             <div class="mb-6">
                 <h2 class="text-3xl font-bold text-gray-800">Daftar Supplier</h2>
-                <p class="text-gray-600 mt-2">Menampilkan data semua supplier</p>
+                <p class="text-gray-600 mt-2">Menampilkan data semua supplier yang terdaftar</p>
             </div>
             
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h3 class="text-xl font-semibold text-white">Daftar Supplier</h3>
+                            <h3 class="text-xl font-semibold text-white">Informasi Supplier</h3>
                             <p class="text-blue-100 mt-1">Total: <?php echo count($suppliers); ?> supplier</p>
                         </div>
                     </div>
@@ -36,7 +43,8 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full">
+                            <!-- Tambahkan kelas 'responsive-table' ke tabel -->
+                            <table class="min-w-full responsive-table">
                                 <thead>
                                     <tr class="border-b border-gray-200">
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Supplier</th>
@@ -48,10 +56,11 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <tbody class="divide-y divide-gray-200">
                                     <?php foreach ($suppliers as $supplier): ?>
                                         <tr class="hover:bg-gray-50 transition duration-200">
-                                            <td class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($supplier['id_supplier']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate"><?php echo htmlspecialchars($supplier['alamat']); ?></td>
-                                            <td class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['no_telpon']); ?></td>
+                                            <!-- Tambahkan atribut data-label untuk setiap sel -->
+                                            <td data-label="ID" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($supplier['id_supplier']); ?></td>
+                                            <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></td>
+                                            <td data-label="Alamat" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($supplier['alamat']); ?></td>
+                                            <td data-label="No. Telpon" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['no_telpon']); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
