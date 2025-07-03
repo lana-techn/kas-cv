@@ -1,0 +1,268 @@
+.responsive-form-table {
+    display: block;
+}
+.responsive-form-table thead {
+    display: none; /* Sembunyikan header di mobile */
+}
+.responsive-form-table tbody,
+.responsive-form-table tr,
+.responsive-form-table td {
+    display: block;
+    width: 100%;
+}
+
+/* Setiap baris menjadi kartu */
+.responsive-form-table tr.item-row {
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    padding: 1.5rem 1.5rem 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+    transition: box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.responsive-form-table td {
+    padding: 0;
+    border: none;
+    margin-bottom: 0.5rem;
+    box-sizing: border-box;
+    background: none;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    max-width: 100%;
+}
+
+/* Input dan select di dalam form table agar lebar penuh dan tidak overflow */
+.responsive-form-table td:not(.delete-button-cell) input,
+.responsive-form-table td:not(.delete-button-cell) select {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 0.15rem;
+    margin-bottom: 0.15rem;
+}
+
+
+.responsive-form-table td:last-child {
+    margin-bottom: 0;
+}
+
+/* Hilangkan margin bawah pada input subtotal agar card tidak terlalu tinggi */
+.responsive-form-table td:last-of-type {
+    margin-bottom: 0;
+}
+
+/* Tombol hapus diposisikan di pojok kanan atas */
+.responsive-form-table .delete-button-cell {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2.2rem;
+    min-width: 2.2rem;
+    max-width: 2.5rem;
+    text-align: right;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    z-index: 2;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+}
+
+/* Tambahkan label dari atribut `data-label` di atas input */
+.responsive-form-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: #4b5563;
+    margin-bottom: 0.18rem;
+    line-height: 1.2;
+}
+
+/* Sembunyikan label untuk tombol hapus */
+.responsive-form-table .delete-button-cell::before {
+    display: none;
+}
+
+/*------------------------------------------------------------------
+[Media Queries untuk Desktop]
+- Mengembalikan tampilan tabel di layar besar
+*/
+@media (min-width: 768px) {
+    .responsive-form-table {
+        display: table;
+    }
+    .responsive-form-table thead {
+        display: table-header-group;
+    }
+    .responsive-form-table tbody {
+        display: table-row-group;
+    }
+    .responsive-form-table tr.item-row {
+        display: table-row;
+        border: none;
+        padding: 0;
+        margin-bottom: 0;
+        background-color: transparent;
+    }
+    .responsive-form-table td {
+        display: table-cell;
+        padding: 0.5rem;
+        vertical-align: middle;
+        margin-bottom: 0;
+    }
+    .responsive-form-table .delete-button-cell {
+        position: static;
+        text-align: center;
+        width: 1%;
+        min-width: 40px;
+    }
+    /* Sembunyikan kembali label ::before di desktop */
+    .responsive-form-table td::before {
+        display: none;
+    }
+}
+/*------------------------------------------------------------------
+[Struktur Dasar & Utilitas]
+*/
+/* Mengatur flex-direction menjadi kolom pada layar kecil */
+.flex-container {
+    display: flex;
+    flex-direction: row; /* Default untuk desktop */
+}
+
+/*------------------------------------------------------------------
+[Tabel Responsif]
+*/
+.responsive-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.responsive-table thead {
+    /* Sembunyikan header tabel pada layar kecil, karena kita akan menggunakan label data */
+    display: none;
+}
+
+.responsive-table tbody tr {
+    display: block;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    background-color: #fff;
+}
+
+.responsive-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    text-align: right; /* Sejajarkan teks nilai ke kanan */
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.responsive-table tbody td:last-child {
+    border-bottom: none;
+}
+
+/* Tambahkan label data dari atribut `data-label` */
+.responsive-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    text-align: left; /* Sejajarkan label ke kiri */
+    margin-right: 1rem;
+    color: #4b5563;
+}
+
+/* Atur sel untuk aksi agar tombolnya tetap di tengah */
+.responsive-table .actions-cell {
+    justify-content: center; /* Pusatkan tombol aksi */
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.responsive-table .actions-cell::before {
+    display: none; /* Sembunyikan label untuk kolom aksi */
+}
+
+/*------------------------------------------------------------------
+[Media Queries untuk Desktop]
+- Terapkan gaya ini hanya pada layar besar (min-width: 768px)
+*/
+@media (min-width: 768px) {
+    /* Kembalikan tampilan tabel seperti semula di desktop */
+    .responsive-table thead {
+        display: table-header-group; /* Tampilkan kembali header tabel */
+    }
+
+    .responsive-table tbody tr {
+        display: table-row;
+        border: none;
+        box-shadow: none;
+        border-radius: 0;
+        margin-bottom: 0;
+    }
+
+    .responsive-table tbody td {
+        display: table-cell;
+        text-align: left; /* Kembalikan perataan teks ke kiri */
+        padding: 1rem 1.5rem; /* Sesuaikan padding untuk desktop */
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .responsive-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Sembunyikan label data di desktop */
+    .responsive-table tbody td::before {
+        display: none;
+    }
+
+    .responsive-table .actions-cell {
+        text-align: center;
+    }
+}
+
+/*------------------------------------------------------------------
+[Penyesuaian Layout Lainnya]
+*/
+@media (max-width: 767px) {
+    /* Kontainer utama menjadi kolom */
+    .flex-container {
+        flex-direction: column;
+    }
+
+    /* Padding utama pada konten */
+    main.p-6 {
+        padding: 1rem;
+    }
+
+    /* Header kartu */
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem; /* Jarak antar elemen */
+    }
+
+    /* Tombol tambah */
+    .add-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Judul halaman */
+    h2.text-3xl {
+        font-size: 1.5rem; /* Ukuran font lebih kecil untuk mobile */
+    }
+}
