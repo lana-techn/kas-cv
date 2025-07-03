@@ -195,7 +195,7 @@ function showAddCostForm() {
             </div>
         </form>
     `;
-    showModal('<i class="fas fa-plus-circle mr-2"></i>Tambah Biaya Baru', content);
+showModal('Tambah Biaya Baru', content);
 }
 
 function deleteCost(id, nama) {
