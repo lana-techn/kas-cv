@@ -2,12 +2,10 @@
 require_once '../config/db_connect.php';
 require_once '../includes/function.php'; // Pastikan fungsi formatCurrency() ada di sini
 require_once '../includes/header.php';
-// === DATA FETCHING LOGIC ===
-// Semua query dan pengolahan data dikumpulkan di sini untuk memisahkan logika dari tampilan.
+
 $userLevel = $_SESSION['user']['level'] ?? 'guest';
 $data = []; // Inisialisasi array untuk menampung semua data yang akan dikirim ke view.
-// Fungsi untuk format waktu "time ago"
-// Didefinisikan sekali di level atas untuk menghindari duplikasi.
+
 if (!function_exists('time_ago')) {
     function time_ago($timestamp)
     {
