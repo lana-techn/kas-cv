@@ -100,9 +100,7 @@ if (!isset($pageTitle)) {
                     <div class="flex flex-1 items-center justify-between">
                         <!-- Logo Section -->
                         <div class="flex items-center">
-                            <a href="dashboard.php" class="flex items-center gap-x-2">
-                                <img class="h-10 w-auto" src="../assets/images/logo.png" alt="Logo Perusahaan">
-                            </a>
+                           
                         </div>
                         
                         <!-- User Menu Section -->

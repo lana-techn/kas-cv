@@ -192,39 +192,39 @@ if ($userLevel === 'admin') {
                 </div>
             <?php elseif ($userLevel === 'pegawai'): ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 items-start">
-                    <div class="group relative bg-gradient-to-br from-green-400 to-cyan-500 p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
+                    <div class="group relative bg-gradient-to-r from-blue-500 to-cyan-400 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
                         <h3 class="text-white font-bold text-2xl">Kasir & Penjualan</h3>
                         <p class="text-white text-lg mt-4"><strong class="font-bold"><?php echo $data['salesToday']; ?></strong> Transaksi Hari Ini</p>
-                        <a href="sales_management.php" class="block w-full text-center mt-4 bg-white text-green-600 font-bold py-3 rounded-lg">Input Penjualan</a>
+                        <a href="sales_management.php" class="block w-full text-center mt-4 bg-white text-gray-600 font-bold py-3 rounded-lg">Input Penjualan</a>
                     </div>
-                    <div class="group relative bg-gradient-to-br from-red-400 to-rose-500 p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
+                    <div class="group relative bg-gradient-to-r from-blue-500 to-cyan-400 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
                         <h3 class="text-white font-bold text-2xl">Pembelian Bahan</h3>
                         <p class="text-white text-lg mt-4"><strong class="font-bold"><?php echo $data['purchasesToday']; ?></strong> Pembelian Hari Ini</p>
-                        <a href="purchase_management.php" class="block w-full text-center mt-4 bg-white text-red-600 font-bold py-3 rounded-lg">Input Pembelian</a>
+                        <a href="purchase_management.php" class="block w-full text-center mt-4 bg-white text-gray-600 font-bold py-3 rounded-lg">Input Pembelian</a>
                     </div>
-                    <div class="group relative bg-gradient-to-br from-yellow-400 to-amber-500 p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
+                    <div class="group relative bg-gradient-to-r from-blue-500 to-cyan-400 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
                         <h3 class="text-white font-bold text-2xl">Biaya Operasional</h3>
                         <p class="text-white text-lg mt-4"><strong class="font-bold"><?php echo formatCurrency($data['costsThisMonth']); ?></strong> Bulan Ini</p>
-                        <a href="cost_management.php" class="block w-full text-center mt-4 bg-white text-yellow-800 font-bold py-3 rounded-lg">Input Biaya</a>
+                        <a href="cost_management.php" class="block w-full text-center mt-4 bg-white text-gray-600 font-bold py-3 rounded-lg">Input Biaya</a>
                     </div>
                 </div>
                 <div class="mb-8">
                     <h3 class="text-2xl font-bold text-gray-800 mb-4">🚨 Peringatan Stok</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="group relative bg-gradient-to-br from-red-500 to-orange-500 p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
+                        <div class="group relative bg-gradient-to-r from-blue-500 to-cyan-400 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
                             <div>
                                 <h3 class="text-white font-bold text-2xl">Stok Bahan Menipis</h3>
                                 <p class="text-white text-lg mt-2"><strong class="font-bold"><?php echo $data['lowStockMaterials']; ?></strong> jenis bahan perlu diisi ulang</p>
                             </div>
-                            <a href="material_list.php" class="block w-full text-center mt-4 bg-white text-red-600 font-bold py-3 rounded-lg">Lihat Detail</a>
+                            <a href="material_list.php" class="block w-full text-center mt-4 bg-white text-gray-600 font-bold py-3 rounded-lg">Lihat Detail</a>
                         </div>
 
-                        <div class="group relative bg-gradient-to-br from-amber-500 to-yellow-500 p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
+                        <div class="group relative bg-gradient-to-r from-blue-500 to-cyan-400 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between h-full">
                             <div>
                                 <h3 class="text-white font-bold text-2xl">Stok Produk Menipis</h3>
                                 <p class="text-white text-lg mt-2"><strong class="font-bold"><?php echo $data['lowStockProducts']; ?></strong> jenis produk perlu diproduksi</p>
                             </div>
-                            <a href="product_list.php?type=barang" class="block w-full text-center mt-4 bg-white text-amber-800 font-bold py-3 rounded-lg">Lihat Detail</a>
+                            <a href="product_list.php?type=barang" class="block w-full text-center mt-4 bg-white text-gray-600 font-bold py-3 rounded-lg">Lihat Detail</a>
                         </div>
                     </div>
                 </div>

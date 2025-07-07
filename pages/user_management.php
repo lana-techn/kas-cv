@@ -94,7 +94,6 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
         <?php endif; ?>
-
         <div id="userManagement" class="section active">
             <div class="mb-6">
                 <h2 class="text-3xl font-bold text-gray-800">Manajemen User</h2>
