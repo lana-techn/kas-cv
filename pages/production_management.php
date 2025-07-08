@@ -11,7 +11,6 @@ if ($_SESSION['user']['level'] !== 'admin') {
 $message = '';
 $error = '';
 
-// ... (Logika PHP Anda untuk CUD tetap sama) ...
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         $pdo->beginTransaction();
@@ -22,7 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             $id_produksi = $_POST['id_produksi'] ?: generateId('PRD');
-            $stmt = $pdo->prepare("INSERT INTO produksi (id_produksi, kd_barang, tgl_produksi, jumlah_produksi) VALUES (?, ?, ?, ?)");
+            // Status diatur ke 'Proses' saat pertama kali dibuat
+            $stmt = $pdo->prepare("INSERT INTO produksi (id_produksi, kd_barang, tgl_produksi, jumlah_produksi, status) VALUES (?, ?, ?, ?, 'Proses')");
             $stmt->execute([$id_produksi, $_POST['kd_barang'], date('Y-m-d'), $_POST['jumlah_produksi']]);
 
             foreach ($_POST['items'] as $item) {
@@ -30,46 +30,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     continue;
                 }
 
-                $stmt = $pdo->prepare("SELECT stok FROM bahan WHERE kd_bahan = ?");
-                $stmt->execute([$item['kd_bahan']]);
-                $currentStock = $stmt->fetchColumn();
+                $stmt_stock = $pdo->prepare("SELECT stok FROM bahan WHERE kd_bahan = ?");
+                $stmt_stock->execute([$item['kd_bahan']]);
+                $currentStock = $stmt_stock->fetchColumn();
 
                 if ($currentStock < $item['jum_bahan']) {
                     throw new Exception("Stok bahan {$item['kd_bahan']} tidak mencukupi");
                 }
 
                 $id_detproduksi = generateId('DPR');
-                $stmt = $pdo->prepare("INSERT INTO detail_produksi (id_detproduksi, id_produksi, kd_bahan, satuan, jum_bahan) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$id_detproduksi, $id_produksi, $item['kd_bahan'], $item['satuan'], $item['jum_bahan']]);
-                $stmt = $pdo->prepare("UPDATE bahan SET stok = stok - ? WHERE kd_bahan = ?");
-                $stmt->execute([$item['jum_bahan'], $item['kd_bahan']]);
+                $stmt_detail = $pdo->prepare("INSERT INTO detail_produksi (id_detproduksi, id_produksi, kd_bahan, satuan, jum_bahan) VALUES (?, ?, ?, ?, ?)");
+                $stmt_detail->execute([$id_detproduksi, $id_produksi, $item['kd_bahan'], $item['satuan'], $item['jum_bahan']]);
+                
+                $stmt_update_bahan = $pdo->prepare("UPDATE bahan SET stok = stok - ? WHERE kd_bahan = ?");
+                $stmt_update_bahan->execute([$item['jum_bahan'], $item['kd_bahan']]);
             }
-            $stmt = $pdo->prepare("UPDATE barang SET stok = stok + ? WHERE kd_barang = ?");
-            $stmt->execute([$_POST['jumlah_produksi'], $_POST['kd_barang']]);
+            // Stok barang jadi TIDAK ditambahkan di sini, tapi saat konfirmasi selesai
 
             $pdo->commit();
-            $message = 'Produksi berhasil ditambahkan';
+            $message = 'Produksi berhasil ditambahkan dan sedang dalam proses.';
+        } elseif ($_POST['action'] === 'finish') {
+            $id_produksi = $_POST['id_produksi'];
+            
+            // Ambil detail produksi untuk menambah stok barang
+            $stmt_prod = $pdo->prepare("SELECT kd_barang, jumlah_produksi, status FROM produksi WHERE id_produksi = ?");
+            $stmt_prod->execute([$id_produksi]);
+            $production = $stmt_prod->fetch(PDO::FETCH_ASSOC);
+
+            if ($production && $production['status'] === 'Proses') {
+                // Update status produksi menjadi 'Selesai'
+                $stmt_update_status = $pdo->prepare("UPDATE produksi SET status = 'Selesai' WHERE id_produksi = ?");
+                $stmt_update_status->execute([$id_produksi]);
+
+                // Tambah stok barang jadi
+                $stmt_update_barang = $pdo->prepare("UPDATE barang SET stok = stok + ? WHERE kd_barang = ?");
+                $stmt_update_barang->execute([$production['jumlah_produksi'], $production['kd_barang']]);
+                
+                $pdo->commit();
+                $message = 'Produksi telah selesai dan stok barang telah diperbarui.';
+            } else {
+                throw new Exception('Produksi ini tidak dapat diselesaikan atau sudah selesai.');
+            }
         } elseif ($_POST['action'] === 'delete') {
-            $stmt = $pdo->prepare("SELECT kd_barang, jumlah_produksi FROM produksi WHERE id_produksi = ?");
-            $stmt->execute([$_POST['id_produksi']]);
+            $id_produksi = $_POST['id_produksi'];
+            
+            // Ambil data produksi yang akan dihapus
+            $stmt = $pdo->prepare("SELECT kd_barang, jumlah_produksi, status FROM produksi WHERE id_produksi = ?");
+            $stmt->execute([$id_produksi]);
             $production = $stmt->fetch(PDO::FETCH_ASSOC);
+
             if ($production) {
+                // Kembalikan stok bahan baku
                 $stmt = $pdo->prepare("SELECT kd_bahan, jum_bahan FROM detail_produksi WHERE id_produksi = ?");
-                $stmt->execute([$_POST['id_produksi']]);
+                $stmt->execute([$id_produksi]);
                 $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($items as $item) {
                     $stmt = $pdo->prepare("UPDATE bahan SET stok = stok + ? WHERE kd_bahan = ?");
                     $stmt->execute([$item['jum_bahan'], $item['kd_bahan']]);
                 }
-                $stmt = $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?");
-                $stmt->execute([$production['jumlah_produksi'], $production['kd_barang']]);
+
+                // Jika produksi sudah 'Selesai', kurangi stok barang jadi yang sudah ditambahkan
+                if ($production['status'] === 'Selesai') {
+                    $stmt = $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?");
+                    $stmt->execute([$production['jumlah_produksi'], $production['kd_barang']]);
+                }
+
+                // Hapus detail dan data produksi utama
                 $stmt = $pdo->prepare("DELETE FROM detail_produksi WHERE id_produksi = ?");
-                $stmt->execute([$_POST['id_produksi']]);
+                $stmt->execute([$id_produksi]);
                 $stmt = $pdo->prepare("DELETE FROM produksi WHERE id_produksi = ?");
-                $stmt->execute([$_POST['id_produksi']]);
+                $stmt->execute([$id_produksi]);
 
                 $pdo->commit();
-                $message = 'Produksi berhasil dihapus';
+                $message = 'Produksi berhasil dihapus dan stok telah dikembalikan.';
             }
         }
     } catch (Exception $e) {
@@ -87,18 +120,13 @@ $stmt = $pdo->query("SELECT kd_bahan, nama_bahan, satuan FROM bahan");
 $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<!-- Tambahkan link ke file CSS responsif di dalam <head> -->
-
 <head>
-    <!-- ... tag head Anda yang lain ... -->
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
-<!-- Tambahkan kelas 'flex-container' untuk layout utama -->
 <div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
-        <!-- Notifications -->
         <?php if ($message): ?>
             <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification">
                 <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
@@ -119,13 +147,11 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
-                    <!-- Tambahkan kelas 'card-header' untuk layout responsif -->
                     <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Produksi</h3>
                             <p class="text-blue-100 mt-1">Total: <?php echo count($productions); ?> riwayat</p>
                         </div>
-                        <!-- Tambahkan kelas 'add-button' untuk styling responsif -->
                         <button onclick="showAddProductionForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                             <i class="fas fa-plus mr-2"></i>Tambah Produksi
                         </button>
@@ -134,7 +160,6 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <div class="p-6">
                     <div class="overflow-x-auto">
-                        <!-- Tambahkan kelas 'responsive-table' ke tabel -->
                         <table class="min-w-full responsive-table">
                             <thead>
                                 <tr>
@@ -142,25 +167,35 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Tanggal</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Barang</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jumlah</th>
+                                    <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Status</th>
                                     <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php foreach ($productions as $production): ?>
                                     <tr>
-                                        <!-- Tambahkan atribut data-label untuk setiap sel -->
                                         <td data-label="ID" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['id_produksi']); ?></td>
                                         <td data-label="Tanggal" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars(date('d M Y', strtotime($production['tgl_produksi']))); ?></td>
                                         <td data-label="Barang" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['product_name']); ?></td>
                                         <td data-label="Jumlah" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['jumlah_produksi']); ?></td>
-                                        <!-- Tambahkan kelas 'actions-cell' untuk kolom aksi -->
+                                        <td data-label="Status" class="px-6 py-4 text-center text-sm font-semibold">
+                                            <?php if ($production['status'] == 'Selesai'): ?>
+                                                <span class="px-3 py-1 bg-green-200 text-green-800 rounded-full text-xs">Selesai</span>
+                                            <?php else: ?>
+                                                <span class="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-xs">Proses</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="px-6 py-4 text-center actions-cell">
-                                            <button onclick="showAddProductionForm()" class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition duration-200">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button onclick="deleteProduction('<?php echo $production['id_produksi']; ?>')" class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <div class="flex justify-center items-center space-x-2">
+                                                <?php if ($production['status'] == 'Proses'): ?>
+                                                    <button onclick="finishProduction('<?php echo $production['id_produksi']; ?>')" class="text-green-600 hover:text-green-800 hover:bg-green-100 p-2 rounded-lg transition duration-200" title="Selesaikan Produksi">
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                                <button onclick="deleteProduction('<?php echo $production['id_produksi']; ?>')" class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200" title="Hapus">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -171,7 +206,6 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- Modal -->
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-auto transform transition-all max-h-[90vh] flex flex-col">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-xl flex-shrink-0">
@@ -182,7 +216,6 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </button>
                     </div>
                 </div>
-                <!-- Konten modal yang bisa di-scroll -->
                 <div id="modalContent" class="p-6 overflow-y-auto"></div>
             </div>
         </div>
@@ -243,7 +276,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </form>
     `;
         showModal('Tambah Data Produksi', content);
-        addItem(); // Langsung tambahkan satu item bahan saat form dibuka
+        addItem();
     }
 
     function addItem() {
@@ -253,11 +286,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <label class="block text-gray-700 text-sm font-bold mb-1">Bahan</label>
                 <select name="items[${itemCount}][kd_bahan]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" onchange="updateItemSatuan(${itemCount})">
                     <option value="">Pilih Bahan</option>
-                    <?php foreach ($materials as $material): ?>
-                        <option value="<?php echo $material['kd_bahan']; ?>" data-satuan="<?php echo htmlspecialchars($material['satuan']); ?>">
-                            <?php echo htmlspecialchars($material['nama_bahan']); ?>
-                        </option>
-                    <?php endforeach; ?>
+                    ${materialsData.map(material => `<option value="${material.kd_bahan}" data-satuan="${material.satuan}">${material.nama_bahan}</option>`).join('')}
                 </select>
             </div>
             <div class="mb-2">
@@ -285,13 +314,21 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
         document.getElementById(`item-${index}`).remove();
     }
 
-
-    function prepareItems() {
-        // Ensure all items are included in the form submission
+    function finishProduction(id_produksi) {
+        if (confirm('Apakah Anda yakin ingin menyelesaikan proses produksi ini? Stok barang jadi akan diperbarui.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `
+            <input type="hidden" name="action" value="finish">
+            <input type="hidden" name="id_produksi" value="${id_produksi}">
+        `;
+            document.body.appendChild(form);
+            form.submit();
+        }
     }
 
     function deleteProduction(id_produksi) {
-        if (confirm('Apakah Anda yakin ingin menghapus produksi ini?')) {
+        if (confirm('Apakah Anda yakin ingin menghapus produksi ini? Stok bahan akan dikembalikan.')) {
             const form = document.createElement('form');
             form.method = 'POST';
             form.innerHTML = `
