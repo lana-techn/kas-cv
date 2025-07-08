@@ -46,6 +46,7 @@ CREATE TABLE produksi (
     id_produksi VARCHAR(25) PRIMARY KEY,
     kd_barang VARCHAR(25) NOT NULL,
     tgl_produksi DATE NOT NULL,
+    status ENUM('Proses', 'Selesai') NOT NULL DEFAULT 'Proses',
     jumlah_produksi INTEGER NOT NULL,
     FOREIGN KEY (kd_barang) REFERENCES barang(kd_barang)
 );

@@ -78,6 +78,14 @@ $today = date('Y-m-d');
 
 <head>
     <link rel="stylesheet" href="../assets/css/responsive.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
 </head>
 
 <div class="flex min-h-screen bg-gray-100">
@@ -150,8 +158,8 @@ $today = date('Y-m-d');
             </div>
         </div>
 
-        <div id="sale-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
-            <div class="bg-gray-50 rounded-xl shadow-2xl w-full max-w-5xl mx-auto transform transition-all max-h-[90vh] flex flex-col">
+        <div id="sale-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 px-4 py-6">
+            <div class="bg-gray-50 rounded-xl shadow-2xl w-full md:max-w-5xl mx-auto transform transition-all max-h-[90vh] flex flex-col modal-container">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-5 rounded-t-xl flex-shrink-0">
                     <div class="flex justify-between items-center">
                         <h3 class="text-xl font-semibold text-white"><i class="fas fa-cash-register mr-3"></i>Input Data Penjualan</h3>
@@ -162,64 +170,69 @@ $today = date('Y-m-d');
                 </div>
 
                 <form id="sale-form" method="POST" class="flex flex-col flex-grow">
-                    <div class="p-6 overflow-y-auto flex-grow">
+                    <div class="p-6 overflow-y-auto max-h-[calc(90vh-12rem)] flex-grow modal-content">
                         <input type="hidden" name="action" value="add">
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 form-grid">
                             <div>
                                 <label class="block text-gray-700 text-sm font-semibold mb-2">ID Penjualan</label>
-                                <input type="text" name="id_penjualan" value="<?php echo generateId('JUL'); ?>" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200">
+                                <input type="text" name="id_penjualan" value="<?php echo generateId('JUL'); ?>" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200 text-sm">
                             </div>
                             <div>
                                 <label class="block text-gray-700 text-sm font-semibold mb-2">Tanggal</label>
-                                <input type="date" name="tgl_jual" value="<?php echo $today; ?>" max="<?php echo $today; ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <input type="date" name="tgl_jual" value="<?php echo $today; ?>" max="<?php echo $today; ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                             </div>
                         </div>
 
-                        <div class="border-t border-gray-300 pt-4">
-                            <div class="flex justify-between items-center mb-3">
+                        <div class="border-t border-gray-300 pt-4 card-section">
+                            <div class="flex flex-col md:flex-row justify-between items-center mb-3 flex-responsive">
                                 <h4 class="text-md font-semibold text-gray-700">Item Penjualan</h4>
-                                <button type="button" onclick="addItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-md text-sm">
+                                <button type="button" onclick="addItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md text-sm mt-2 md:mt-0 min-w-[120px]">
                                     <i class="fas fa-plus mr-1"></i> Tambah Item
                                 </button>
                             </div>
-                            <table class="min-w-full responsive-form-table">
-                                <thead>
-                                    <tr>
-                                        <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-2/5">Nama Produk</th>
-                                        <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Harga</th>
-                                        <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Qty</th>
-                                        <th class="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase w-1/5">Subtotal</th>
-                                        <th class="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="item-list"></tbody>
-                            </table>
+                            <div class="overflow-y-auto max-h-[calc(60vh-8rem)]">
+                                <table class="min-w-full responsive-form-table md:table hidden md:table">
+                                    <thead>
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-2/5">Nama Produk</th>
+                                            <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Harga</th>
+                                            <th class="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase w-1/5">Qty</th>
+                                            <th class="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase w-1/5">Subtotal</th>
+                                            <th class="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="item-list"></tbody>
+                                </table>
+                                <div id="item-list-mobile" class="block md:hidden space-y-4">
+                                    <!-- Item akan ditambahkan di sini oleh JavaScript -->
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="flex flex-col md:flex-row justify-end mt-6">
-                            <div class="w-full md:w-2/5 space-y-3">
+                        <div class="flex flex-col md:flex-row justify-end mt-6 flex-responsive card-section">
+                            <div class="w-full md:w-2/5 space-y-4">
                                 <div>
                                     <label class="flex justify-between items-center text-gray-700 text-sm font-semibold"><span>Total Penjualan</span></label>
-                                    <input type="text" id="total_display" value="Rp 0" readonly class="w-full px-3 py-2 border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-xl">
+                                    <input type="text" id="total_display" value="Rp 0" readonly class="w-full px-3 py-2 border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-base">
                                     <input type="hidden" name="total_jual" id="total_jual" value="0">
                                 </div>
                                 <div>
                                     <label class="block text-gray-700 text-sm font-semibold">Jumlah Bayar</label>
-                                    <input type="number" name="bayar" id="bayar" required class="w-full px-3 py-2 border-gray-300 rounded-lg text-right font-bold text-xl" oninput="updateKembali()">
+                                    <input type="number" name="bayar" id="bayar" required class="w-full px-3 py-2 border-gray-300 rounded-lg text-right font-bold text-base" oninput="updateKembali()">
                                 </div>
                                 <div>
                                     <label class="block text-gray-700 text-sm font-semibold">Kembali</label>
-                                    <input type="text" id="kembali_display" value="Rp 0" readonly class="w-full px-3 py-2 border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-xl">
+                                    <input type="text" id="kembali_display" value="Rp 0" readonly class="w-full px-3 py-2 border-gray-300 rounded-lg bg-gray-200 text-right font-bold text-base">
                                     <input type="hidden" name="kembali" id="kembali" value="0">
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex justify-end space-x-4 p-4 bg-gray-200 border-t border-gray-300 flex-shrink-0">
-                        <button type="button" onclick="closeModalSales()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Batal</button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Simpan Transaksi</button>
+                    <div class="flex flex-col md:flex-row justify-end items-center space-y-2 md:space-x-4 md:space-y-0 p-4 bg-gray-200 border-t border-gray-300 flex-shrink-0 button-container">
+                        <button type="button" onclick="closeModalSales()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm min-w-[120px]">Batal</button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm min-w-[120px]">Simpan Transaksi</button>
                     </div>
                 </form>
             </div>
@@ -230,7 +243,7 @@ $today = date('Y-m-d');
 <template id="item-template">
     <tr class="item-row">
         <td data-label="Produk">
-            <select name="kd_barang" required class="w-full p-2 border border-gray-300 rounded-md" onchange="checkStock(this)">
+            <select name="kd_barang" required class="w-full p-2 border border-gray-300 rounded-md text-sm" onchange="checkStock(this)">
                 <option value="" disabled selected>Cari Produk...</option>
                 <?php foreach ($products as $product): ?>
                     <option value="<?php echo $product['kd_barang']; ?>" data-stok="<?php echo $product['stok']; ?>"><?php echo htmlspecialchars($product['nama_barang']) . ' (Stok: ' . $product['stok'] . ')'; ?></option>
@@ -238,18 +251,18 @@ $today = date('Y-m-d');
             </select>
         </td>
         <td data-label="Harga">
-            <input type="number" name="harga_jual" required class="w-full p-2 border border-gray-300 rounded-md text-right" placeholder="0" oninput="updateTotal()">
+            <input type="number" name="harga_jual" required class="w-full p-2 border border-gray-300 rounded-md text-right text-sm" placeholder="0" oninput="updateTotal()">
         </td>
         <td data-label="Qty">
-            <input type="number" name="qty" required class="w-full p-2 border border-gray-300 rounded-md text-right" placeholder="0" oninput="updateTotal(); checkStock(this);">
+            <input type="number" name="qty" required class="w-full p-2 border border-gray-300 rounded-md text-right text-sm" placeholder="0" oninput="updateTotal(); checkStock(this);">
         </td>
         <td data-label="Subtotal">
-            <input type="text" name="subtotal_display" readonly class="w-full p-2 border-gray-300 rounded-md bg-gray-200 text-right font-semibold">
+            <input type="text" name="subtotal_display" readonly class="w-full p-2 border-gray-300 rounded-md bg-gray-200 text-right font-semibold text-sm">
             <input type="hidden" name="subtotal">
         </td>
         <td>
-            <button type="button" class="text-red-500 hover:text-red-700" onclick="removeItem(this)" title="Hapus item">
-                <i class="fas fa-trash-alt fa-lg"></i>
+            <button type="button" class="text-red-500 hover:text-red-700 p-2" onclick="removeItem(this)" title="Hapus item">
+                <i class="fas fa-trash-alt"></i>
             </button>
         </td>
     </tr>
@@ -265,6 +278,7 @@ $today = date('Y-m-d');
     function showAddSaleForm() {
         document.getElementById('sale-form').reset();
         document.getElementById('item-list').innerHTML = '';
+        document.getElementById('item-list-mobile').innerHTML = '';
         addItem();
         updateTotal();
         document.getElementById('sale-modal').classList.remove('hidden');
@@ -275,21 +289,63 @@ $today = date('Y-m-d');
     }
 
     function addItem() {
-        const template = document.getElementById('item-template').content.cloneNode(true);
+        const template = document.getElementById('item-template');
+        if (!template || !template.content) {
+            console.error('Template item-template tidak ditemukan atau kontennya kosong.');
+            return;
+        }
+
         const itemCount = document.querySelectorAll('#item-list tr').length;
+        const desktopItem = template.content.cloneNode(true).querySelector('.item-row');
+        const mobileItem = template.content.cloneNode(true).querySelector('.item-row');
 
-        template.querySelector('[name="kd_barang"]').name = `items[${itemCount}][kd_barang]`;
-        template.querySelector('[name="harga_jual"]').name = `items[${itemCount}][harga_jual]`;
-        template.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
-        template.querySelector('[name="subtotal_display"]').name = `items[${itemCount}][subtotal_display]`;
-        template.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
+        // Konfigurasi nama field untuk desktop
+        desktopItem.querySelector('[name="kd_barang"]').name = `items[${itemCount}][kd_barang]`;
+        desktopItem.querySelector('[name="harga_jual"]').name = `items[${itemCount}][harga_jual]`;
+        desktopItem.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
+        desktopItem.querySelector('[name="subtotal_display"]').name = `items[${itemCount}][subtotal_display]`;
+        desktopItem.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
 
-        document.getElementById('item-list').appendChild(template);
+        // Konfigurasi nama field untuk mobile
+        mobileItem.querySelector('[name="kd_barang"]').name = `items[${itemCount}][kd_barang]`;
+        mobileItem.querySelector('[name="harga_jual"]').name = `items[${itemCount}][harga_jual]`;
+        mobileItem.querySelector('[name="qty"]').name = `items[${itemCount}][qty]`;
+        mobileItem.querySelector('[name="subtotal_display"]').name = `items[${itemCount}][subtotal_display]`;
+        mobileItem.querySelector('[name="subtotal"]').name = `items[${itemCount}][subtotal]`;
+
+        // Tambah ke tabel untuk desktop
+        document.getElementById('item-list').appendChild(desktopItem);
+
+        // Ubah layout untuk mobile
+        const mobileDiv = document.createElement('div');
+        mobileDiv.classList.add('grid', 'grid-cols-1', 'gap-4', 'p-3', 'border', 'rounded-lg', 'bg-gray-50', 'item-row');
+        mobileItem.querySelectorAll('td').forEach((td, index) => {
+            const label = td.getAttribute('data-label');
+            const input = td.querySelector('select, input, button');
+            if (index < 4 && input) {
+                const labelElement = document.createElement('label');
+                labelElement.classList.add('block', 'text-gray-700', 'text-sm', 'font-bold', 'mb-1');
+                labelElement.textContent = label;
+                const wrapper = document.createElement('div');
+                wrapper.appendChild(labelElement);
+                wrapper.appendChild(input);
+                mobileDiv.appendChild(wrapper);
+            } else if (input) {
+                mobileDiv.appendChild(input); // Tombol aksi
+            }
+        });
+        document.getElementById('item-list-mobile').appendChild(mobileDiv);
     }
 
     function removeItem(button) {
-        button.closest('.item-row').remove();
+        const row = button.closest('.item-row');
+        row.remove();
         updateTotal();
+        // Sinkronkan penghapusan pada mobile
+        const itemIndex = Array.from(document.querySelectorAll('#item-list .item-row')).indexOf(row);
+        if (itemIndex !== -1) {
+            document.querySelectorAll('#item-list-mobile .item-row')[itemIndex]?.remove();
+        }
     }
 
     function checkStock(element) {
@@ -312,7 +368,7 @@ $today = date('Y-m-d');
 
     function updateTotal() {
         let total = 0;
-        document.querySelectorAll('#item-list tr').forEach(row => {
+        document.querySelectorAll('#item-list .item-row').forEach(row => {
             const harga = parseFloat(row.querySelector('[name*="[harga_jual]"]').value) || 0;
             const qty = parseFloat(row.querySelector('[name*="[qty]"]').value) || 0;
             const subtotal = harga * qty;
