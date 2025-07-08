@@ -75,7 +75,7 @@ $items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
                 </div>
                 <div class="text-right">
                     <h2 class="text-xl font-semibold text-gray-700">CV. Karya Wahana Sentosa</h2>
-                    <p class="text-gray-500 text-sm">Perusahaan Manufaktur Tas</p>
+                    <p class="text-gray-500 text-sm">Jl. Imogiri Barat Km. 17, Bungas, Jetis, Bantul, Yogyakarta</p>
                 </div>
             </header>
 
@@ -95,15 +95,19 @@ $items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
                 <table class="w-full">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Produk</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Jual</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                            <th class="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">No.</th>
+                            <th class="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                            <th class="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">Nama Produk</th>
+                            <th class="px-6 py-3 text-right text-xs font-normal text-gray-500 uppercase tracking-wider">Harga Jual</th>
+                            <th class="px-6 py-3 text-center text-xs font-normal text-gray-500 uppercase tracking-wider">Jumlah</th>
+                            <th class="px-6 py-3 text-right text-xs font-normal text-gray-500 uppercase tracking-wider">Subtotal</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php foreach ($items as $item): ?>
                         <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?php $no = 1;echo $no++; ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($item['kd_barang']); ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($item['nama_barang']); ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right"><?php echo formatCurrency($item['harga_jual']); ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center"><?php echo $item['qty']; ?></td>
