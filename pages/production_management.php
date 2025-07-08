@@ -21,7 +21,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             $id_produksi = $_POST['id_produksi'] ?: generateId('PRD');
-            // Status diatur ke 'Proses' saat pertama kali dibuat
             $stmt = $pdo->prepare("INSERT INTO produksi (id_produksi, kd_barang, tgl_produksi, jumlah_produksi, status) VALUES (?, ?, ?, ?, 'Proses')");
             $stmt->execute([$id_produksi, $_POST['kd_barang'], date('Y-m-d'), $_POST['jumlah_produksi']]);
 
@@ -45,24 +44,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt_update_bahan = $pdo->prepare("UPDATE bahan SET stok = stok - ? WHERE kd_bahan = ?");
                 $stmt_update_bahan->execute([$item['jum_bahan'], $item['kd_bahan']]);
             }
-            // Stok barang jadi TIDAK ditambahkan di sini, tapi saat konfirmasi selesai
 
             $pdo->commit();
             $message = 'Produksi berhasil ditambahkan dan sedang dalam proses.';
         } elseif ($_POST['action'] === 'finish') {
             $id_produksi = $_POST['id_produksi'];
             
-            // Ambil detail produksi untuk menambah stok barang
             $stmt_prod = $pdo->prepare("SELECT kd_barang, jumlah_produksi, status FROM produksi WHERE id_produksi = ?");
             $stmt_prod->execute([$id_produksi]);
             $production = $stmt_prod->fetch(PDO::FETCH_ASSOC);
 
             if ($production && $production['status'] === 'Proses') {
-                // Update status produksi menjadi 'Selesai'
                 $stmt_update_status = $pdo->prepare("UPDATE produksi SET status = 'Selesai' WHERE id_produksi = ?");
                 $stmt_update_status->execute([$id_produksi]);
 
-                // Tambah stok barang jadi
                 $stmt_update_barang = $pdo->prepare("UPDATE barang SET stok = stok + ? WHERE kd_barang = ?");
                 $stmt_update_barang->execute([$production['jumlah_produksi'], $production['kd_barang']]);
                 
@@ -74,13 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } elseif ($_POST['action'] === 'delete') {
             $id_produksi = $_POST['id_produksi'];
             
-            // Ambil data produksi yang akan dihapus
             $stmt = $pdo->prepare("SELECT kd_barang, jumlah_produksi, status FROM produksi WHERE id_produksi = ?");
             $stmt->execute([$id_produksi]);
             $production = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($production) {
-                // Kembalikan stok bahan baku
                 $stmt = $pdo->prepare("SELECT kd_bahan, jum_bahan FROM detail_produksi WHERE id_produksi = ?");
                 $stmt->execute([$id_produksi]);
                 $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -89,13 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $stmt->execute([$item['jum_bahan'], $item['kd_bahan']]);
                 }
 
-                // Jika produksi sudah 'Selesai', kurangi stok barang jadi yang sudah ditambahkan
                 if ($production['status'] === 'Selesai') {
                     $stmt = $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?");
                     $stmt->execute([$production['jumlah_produksi'], $production['kd_barang']]);
                 }
 
-                // Hapus detail dan data produksi utama
                 $stmt = $pdo->prepare("DELETE FROM detail_produksi WHERE id_produksi = ?");
                 $stmt->execute([$id_produksi]);
                 $stmt = $pdo->prepare("DELETE FROM produksi WHERE id_produksi = ?");
@@ -111,7 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-
 $stmt = $pdo->query("SELECT p.*, b.nama_barang AS product_name FROM produksi p JOIN barang b ON p.kd_barang = b.kd_barang ORDER BY p.tgl_produksi DESC");
 $productions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("SELECT kd_barang, nama_barang FROM barang");
@@ -122,6 +112,14 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <head>
     <link rel="stylesheet" href="../assets/css/responsive.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
 </head>
 
 <div class="flex min-h-screen bg-gray-100">
@@ -146,13 +144,13 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
 
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-500 p-6">
                     <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Produksi</h3>
-                            <p class="text-blue-100 mt-1">Total: <?php echo count($productions); ?> riwayat</p>
+                            <p class="text-indigo-100 mt-1">Total: <?php echo count($productions); ?> riwayat</p>
                         </div>
-                        <button onclick="showAddProductionForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                        <button onclick="showAddProductionForm()" class="add-button bg-white text-indigo-600 hover:bg-indigo-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                             <i class="fas fa-plus mr-2"></i>Tambah Produksi
                         </button>
                     </div>
@@ -205,18 +203,23 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
         </div>
-
-        <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-auto transform transition-all max-h-[90vh] flex flex-col">
-                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-xl flex-shrink-0">
-                    <div class="flex justify-between items-center">
+        
+        <div id="modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 px-4 py-6">
+            <div class="bg-gray-50 rounded-xl shadow-2xl w-full max-w-2xl mx-auto transform transition-all max-h-[90vh] flex flex-col modal-container">
+                <form method="POST" class="flex flex-col flex-grow">
+                    <div class="bg-gradient-to-r from-indigo-500 to-purple-500 p-5 rounded-t-xl flex-shrink-0 flex justify-between items-center">
                         <h3 id="modalTitle" class="text-xl font-semibold text-white"></h3>
-                        <button onclick="closeModal()" class="text-white hover:text-gray-200 transition duration-200">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
+                        <button type="button" onclick="closeModal()" class="text-white hover:text-gray-200 text-2xl" title="Tutup"><i class="fas fa-times-circle"></i></button>
                     </div>
-                </div>
-                <div id="modalContent" class="p-6 overflow-y-auto"></div>
+
+                    <div id="modalContent" class="p-6 max-h-[calc(70vh-6rem)] overflow-y-auto modal-content">
+                    </div>
+
+                    <div class="flex justify-end items-center space-x-4 p-4 bg-gray-100 border-t rounded-b-xl flex-shrink-0 button-container">
+                        <button type="button" onclick="closeModal()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg h-10 min-w-[120px] transition-transform transform hover:scale-105">Batal</button>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg h-10 min-w-[120px] transition-transform transform hover:scale-105">Simpan</button>
+                    </div>
+                </form>
             </div>
         </div>
     </main>
@@ -241,39 +244,41 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
     function showAddProductionForm() {
         itemCount = 0;
         const content = `
-        <form method="POST">
             <input type="hidden" name="action" value="add">
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">ID Produksi</label>
-                    <input type="text" name="id_produksi" value="<?php echo generateId('PRD'); ?>" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50" readonly>
+            <div class="space-y-6">
+                <div class="bg-white p-5 rounded-lg shadow">
+                    <h4 class="font-semibold text-gray-700 mb-4 border-b pb-2">Detail Produksi</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">ID Produksi</label>
+                            <input type="text" name="id_produksi" value="<?php echo generateId('PRD'); ?>" class="w-full px-4 py-2 border rounded-lg bg-gray-100 text-sm" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Produk Jadi</label>
+                            <select name="kd_barang" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+                                <option value="">Pilih Produk</option>
+                                <?php foreach ($products as $product): ?>
+                                    <option value="<?php echo $product['kd_barang']; ?>"><?php echo htmlspecialchars($product['nama_barang']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Jumlah Produksi</label>
+                            <input type="number" name="jumlah_produksi" required min="1" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Masukkan jumlah yang akan diproduksi">
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Produk Jadi</label>
-                    <select name="kd_barang" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Pilih Produk</option>
-                        <?php foreach ($products as $product): ?>
-                            <option value="<?php echo $product['kd_barang']; ?>"><?php echo htmlspecialchars($product['nama_barang']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Jumlah Produksi</label>
-                    <input type="number" name="jumlah_produksi" required min="1" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Masukkan jumlah">
-                </div>
-                <div class="border-t pt-4">
-                    <h4 class="text-lg font-semibold mb-2 text-gray-800">Bahan yang Digunakan</h4>
+
+                <div class="bg-white p-5 rounded-lg shadow">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h4 class="font-semibold text-gray-700">Bahan yang Digunakan</h4>
+                        <button type="button" onclick="addItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md text-sm flex items-center min-w-[120px]">
+                            <i class="fas fa-plus mr-2"></i>Tambah Bahan
+                        </button>
+                    </div>
                     <div id="item-list" class="space-y-4"></div>
-                    <button type="button" onclick="addItem()" class="mt-4 text-blue-600 hover:text-blue-800 font-medium flex items-center">
-                        <i class="fas fa-plus-circle mr-2"></i>Tambah Bahan
-                    </button>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-8 border-t pt-6">
-                <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">Batal</button>
-                <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"><i class="fas fa-save mr-2"></i>Simpan Produksi</button>
-            </div>
-        </form>
     `;
         showModal('Tambah Data Produksi', content);
         addItem();
@@ -281,23 +286,25 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     function addItem() {
         const itemHtml = `
-        <div id="item-${itemCount}" class="mb-2 p-2 border rounded">
-            <div class="mb-2">
+        <div id="item-${itemCount}" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-center p-3 border rounded-lg bg-gray-50">
+            <div class="md:col-span-2">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Bahan</label>
-                <select name="items[${itemCount}][kd_bahan]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" onchange="updateItemSatuan(${itemCount})">
+                <select name="items[${itemCount}][kd_bahan]" required class="w-full p-2 border border-gray-300 rounded-md text-sm" onchange="updateItemSatuan(${itemCount})">
                     <option value="">Pilih Bahan</option>
                     ${materialsData.map(material => `<option value="${material.kd_bahan}" data-satuan="${material.satuan}">${material.nama_bahan}</option>`).join('')}
                 </select>
             </div>
-            <div class="mb-2">
+            <div class="md:col-span-1">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Satuan</label>
-                <input type="text" name="items[${itemCount}][satuan]" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                <input type="text" name="items[${itemCount}][satuan]" readonly class="w-full p-2 border bg-gray-200 border-gray-300 rounded-md text-sm">
             </div>
-            <div class="mb-2">
-                <label class="block text-gray-700 text-sm font-bold mb-1">Jumlah Bahan</label>
-                <input type="number" name="items[${itemCount}][jum_bahan]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+            <div class="md:col-span-1">
+                <label class="block text-gray-700 text-sm font-bold mb-1">Jumlah</label>
+                <input type="number" name="items[${itemCount}][jum_bahan]" required class="w-full p-2 border border-gray-300 rounded-md text-sm">
             </div>
-            <button type="button" onclick="removeItem(${itemCount})" class="text-red-600 hover:text-red-900 text-sm">Hapus Bahan</button>
+            <div class="md:col-span-1 flex items-end justify-center">
+                <button type="button" onclick="removeItem(${itemCount})" class="text-red-500 hover:text-red-700 p-2 rounded-lg" title="Hapus"><i class="fas fa-trash-alt"></i></button>
+            </div>
         </div>
     `;
         document.getElementById('item-list').insertAdjacentHTML('beforeend', itemHtml);
