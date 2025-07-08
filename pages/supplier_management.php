@@ -11,7 +11,6 @@ if ($_SESSION['user']['level'] !== 'admin') {
 $message = '';
 $error = '';
 
-// ... (Logika PHP Anda untuk CUD tetap sama) ...
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         if ($_POST['action'] === 'add') {
@@ -20,13 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             
             $phone = trim($_POST['no_telpon']);
-            if (!preg_match('/^[0-9+\-\s()]+$/', $phone)) {
-                throw new Exception('Format nomor telepon tidak valid');
+            if (!preg_match('/^(\+?[0-9\s\-()]{8,15})$/', $phone)) {
+                throw new Exception('Format nomor telepon tidak valid. Contoh: +6281234567890 atau 081234567890');
             }
             
             $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
             if (strlen($cleanPhone) < 8 || strlen($cleanPhone) > 15) {
                 throw new Exception('Nomor telepon harus memiliki 8-15 digit angka');
+            }
+            
+            // Cek duplikasi nomor telepon
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM supplier WHERE no_telpon = ?");
+            $stmt->execute([$phone]);
+            if ($stmt->fetchColumn() > 0) {
+                throw new Exception('Nomor telepon sudah digunakan oleh supplier lain');
             }
             
             $id_supplier = $_POST['id_supplier'] ?: generateId('SUP');
@@ -39,13 +45,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             
             $phone = trim($_POST['no_telpon']);
-            if (!preg_match('/^[0-9+\-\s()]+$/', $phone)) {
-                throw new Exception('Format nomor telepon tidak valid');
+            if (!preg_match('/^(\+?[0-9\s\-()]{8,15})$/', $phone)) {
+                throw new Exception('Format nomor telepon tidak valid. Contoh: +6281234567890 atau 081234567890');
             }
             
             $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
             if (strlen($cleanPhone) < 8 || strlen($cleanPhone) > 15) {
                 throw new Exception('Nomor telepon harus memiliki 8-15 digit angka');
+            }
+            
+            // Cek duplikasi nomor telepon, kecuali untuk supplier yang sedang diedit
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM supplier WHERE no_telpon = ? AND id_supplier != ?");
+            $stmt->execute([$phone, $_POST['id_supplier']]);
+            if ($stmt->fetchColumn() > 0) {
+                throw new Exception('Nomor telepon sudah digunakan oleh supplier lain');
             }
             
             $stmt = $pdo->prepare("UPDATE supplier SET nama_supplier = ?, alamat = ?, no_telpon = ? WHERE id_supplier = ?");
@@ -60,7 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $error = $e->getMessage();
     }
 }
-
 
 $stmt = $pdo->query("SELECT * FROM supplier ORDER BY nama_supplier");
 $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -161,7 +173,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- Modal (tidak ada perubahan signifikan, sudah cukup responsif) -->
+        <!-- Modal -->
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
             <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-xl">
@@ -178,7 +190,6 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </main>
 </div>
 
-<!-- ... (JavaScript Anda tetap sama, dengan sedikit perbaikan pada show/close modal) ... -->
 <script>
 function showModal(title, content) {
     document.getElementById('modalTitle').innerHTML = title;
@@ -218,7 +229,7 @@ function showAddSupplierForm() {
                     <label class="block text-gray-700 text-sm font-semibold mb-2">No. Telpon <span class="text-red-500">*</span></label>
                     <input type="tel" name="no_telpon" required 
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="Contoh: 081234567890">
+                           placeholder="Contoh: +6281234567890 atau 081234567890">
                 </div>
             </div>
             <div class="flex justify-end space-x-3 mt-8">
@@ -237,10 +248,9 @@ function showAddSupplierForm() {
 }
 
 function editSupplier(id, nama, alamat, telpon) {
-    // Menggunakan addslashes untuk handle kutip dalam string
-    const safeNama = nama.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const safeAlamat = alamat.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const safeTelpon = telpon.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const safeNama = nama.replace(/'/g, "\\'").replace(/"/g, '"');
+    const safeAlamat = alamat.replace(/'/g, "\\'").replace(/"/g, '"');
+    const safeTelpon = telpon.replace(/'/g, "\\'").replace(/"/g, '"');
 
     const content = `
         <form id="supplierForm" method="POST" onsubmit="return validateForm(this)">
@@ -265,7 +275,8 @@ function editSupplier(id, nama, alamat, telpon) {
                 <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">No. Telpon <span class="text-red-500">*</span></label>
                     <input type="tel" name="no_telpon" value="${safeTelpon}" required 
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Contoh: +6281234567890 atau 081234567890">
                 </div>
             </div>
             <div class="flex justify-end space-x-3 mt-8">
@@ -306,9 +317,9 @@ function validateForm(form) {
         return false;
     }
     
-    const phoneRegex = /^[0-9+\-\s()]+$/;
+    const phoneRegex = /^(\+?[0-9\s\-()]{8,15})$/;
     if (!phoneRegex.test(telpon)) {
-        alert('Format nomor telepon tidak valid! Gunakan hanya angka, +, -, spasi, atau tanda kurung.');
+        alert('Format nomor telepon tidak valid! Contoh: +6281234567890 atau 081234567890');
         return false;
     }
     
