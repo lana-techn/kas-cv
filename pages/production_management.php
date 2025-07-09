@@ -105,16 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 $sql = "SELECT p.*, b.nama_barang AS product_name 
         FROM produksi p 
-        JOIN barang b ON p.kd_barang = b.kd_barang";
-if (!empty($search_query)) {
-    $sql .= " WHERE p.id_produksi LIKE :search OR b.nama_barang LIKE :search";
-}
-$sql .= " ORDER BY p.tgl_produksi DESC";
-
+        JOIN barang b ON p.kd_barang = b.kd_barang ORDER BY p.tgl_produksi DESC";
 $stmt = $pdo->prepare($sql);
-if (!empty($search_query)) {
-    $stmt->bindValue(':search', '%' . $search_query . '%');
-}
 $stmt->execute();
 $productions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -171,14 +163,14 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
 
                 <div class="p-6">
-                    <form method="GET" action="" class="mb-4">
-                        <div class="flex items-center">
-                            <input type="text" name="search" class="w-full px-4 py-2 border rounded-l-lg" placeholder="Cari ID produksi atau nama barang..." value="<?php echo htmlspecialchars($search_query); ?>">
-                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg">Cari</button>
-                        </div>
-                    </form>
+                    <div class="mb-6 relative">
+                        <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10" placeholder="Cari ID produksi atau nama barang..." value="<?php echo htmlspecialchars($search_query); ?>">
+                        <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full responsive-table">
+                        <table class="min-w-full responsive-table" id="productionsTable">
                             <thead>
                                 <tr>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Produksi</th>
@@ -189,9 +181,9 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody id="productionsTableBody" class="bg-white divide-y divide-gray-200">
                                 <?php foreach ($productions as $production): ?>
-                                    <tr>
+                                    <tr class="production-row" data-name="<?php echo strtolower(htmlspecialchars($production['id_produksi'] . ' ' . $production['product_name'])); ?>">
                                         <td data-label="ID" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['id_produksi']); ?></td>
                                         <td data-label="Tanggal" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars(date('d M Y', strtotime($production['tgl_produksi']))); ?></td>
                                         <td data-label="Barang" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['product_name']); ?></td>
@@ -366,5 +358,16 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
             form.submit();
         }
     }
+
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const tableRows = document.querySelectorAll('#productionsTableBody .production-row');
+        
+        tableRows.forEach(row => {
+            const name = row.dataset.name.toLowerCase();
+            row.style.display = name.includes(searchTerm) ? '' : 'none';
+        });
+    });
 </script>
 <?php require_once '../includes/footer.php'; ?>
