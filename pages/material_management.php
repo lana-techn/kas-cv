@@ -49,18 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-
-// Mengambil semua data bahan baku
-$sql = "SELECT * FROM bahan";
-if (!empty($search_query)) {
-    $sql .= " WHERE nama_bahan LIKE :search";
-}
-$sql .= " ORDER BY nama_bahan";
-
+// Mengambil semua data bahan baku tanpa filter pencarian
+$sql = "SELECT * FROM bahan ORDER BY nama_bahan";
 $stmt = $pdo->prepare($sql);
-if (!empty($search_query)) {
-    $stmt->bindValue(':search', '%' . $search_query . '%');
-}
 $stmt->execute();
 $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -104,12 +95,12 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
 
                 <div class="p-6">
-                    <form method="GET" action="" class="mb-4">
-                        <div class="flex items-center">
-                            <input type="text" name="search" class="w-full px-4 py-2 border rounded-l-lg" placeholder="Cari nama bahan..." value="<?php echo htmlspecialchars($search_query); ?>">
-                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg">Cari</button>
-                        </div>
-                    </form>
+                    <div class="mb-6 relative">
+                        <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10" placeholder="Cari nama bahan..." value="<?php echo htmlspecialchars($search_query); ?>">
+                        <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </div>
                     <?php if (empty($materials)): ?>
                         <div class="text-center py-12">
                             <i class="fas fa-box-open text-gray-400 text-6xl mb-4"></i>
@@ -118,7 +109,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full responsive-table">
+                            <table class="min-w-full responsive-table" id="materialsTable">
                                 <thead>
                                     <tr class="border-b border-gray-200">
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Kode Bahan</th>
@@ -128,9 +119,9 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-200">
+                                <tbody id="materialsTableBody" class="divide-y divide-gray-200">
                                     <?php foreach ($materials as $material): ?>
-                                        <tr class="hover:bg-gray-50 transition duration-200">
+                                        <tr class="material-row" data-name="<?php echo strtolower(htmlspecialchars($material['nama_bahan'])); ?>">
                                             <td data-label="Kode" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($material['kd_bahan']); ?></td>
                                             <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($material['nama_bahan']); ?></td>
                                             <td data-label="Stok" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($material['stok']); ?></td>
@@ -302,6 +293,17 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return true;
     }
+
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const tableRows = document.querySelectorAll('#materialsTableBody .material-row');
+        
+        tableRows.forEach(row => {
+            const name = row.dataset.name.toLowerCase();
+            row.style.display = name.includes(searchTerm) ? '' : 'none';
+        });
+    });
 
     document.addEventListener('DOMContentLoaded', (event) => {
         const notifications = document.querySelectorAll('.notification');
