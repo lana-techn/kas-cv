@@ -49,6 +49,7 @@ if (!in_array($_SESSION['user']['level'], ['admin', 'pegawai'])) {
 
 $message = '';
 $error = '';
+$search_query = $_GET['search'] ?? '';
 
 // Logika untuk menangani form POST (tambah, edit, hapus)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -115,7 +116,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Pengambilan data untuk ditampilkan
-$purchases = $pdo->query("SELECT p.*, s.nama_supplier FROM pembelian p JOIN supplier s ON p.id_supplier = s.id_supplier ORDER BY p.tgl_beli DESC, p.id_pembelian DESC")->fetchAll(PDO::FETCH_ASSOC);
+$sql = "SELECT p.*, s.nama_supplier 
+        FROM pembelian p 
+        JOIN supplier s ON p.id_supplier = s.id_supplier";
+if (!empty($search_query)) {
+    $sql .= " WHERE p.id_pembelian LIKE :search OR s.nama_supplier LIKE :search";
+}
+$sql .= " ORDER BY p.tgl_beli DESC, p.id_pembelian DESC";
+
+$stmt = $pdo->prepare($sql);
+if (!empty($search_query)) {
+    $stmt->bindValue(':search', '%' . $search_query . '%');
+}
+$stmt->execute();
+$purchases = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 $suppliers = $pdo->query("SELECT id_supplier, nama_supplier FROM supplier ORDER BY nama_supplier")->fetchAll(PDO::FETCH_ASSOC);
 $materials = $pdo->query("SELECT kd_bahan, nama_bahan FROM bahan ORDER BY nama_bahan")->fetchAll(PDO::FETCH_ASSOC);
 $today = date('Y-m-d');
@@ -143,6 +158,12 @@ $today = date('Y-m-d');
             </div>
             
             <div class="p-6">
+                <form method="GET" action="" class="mb-4">
+                    <div class="flex items-center">
+                        <input type="text" name="search" class="w-full px-4 py-2 border rounded-l-lg" placeholder="Cari ID pembelian atau nama supplier..." value="<?php echo htmlspecialchars($search_query); ?>">
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg">Cari</button>
+                    </div>
+                </form>
                 <div class="overflow-x-auto">
                     <table class="min-w-full">
                         <thead class="bg-gray-50">

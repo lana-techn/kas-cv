@@ -55,6 +55,7 @@ if (!in_array($_SESSION['user']['level'], ['admin', 'pegawai'])) {
 
 $message = '';
 $error = '';
+$search_query = $_GET['search'] ?? '';
 
 // Logika untuk menangani form POST (tambah, edit)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -127,7 +128,19 @@ if (!isset($_SESSION['temp_sale_id'])) {
 }
 
 // Pengambilan data untuk ditampilkan
-$sales = $pdo->query("SELECT * FROM penjualan ORDER BY tgl_jual DESC, id_penjualan DESC")->fetchAll(PDO::FETCH_ASSOC);
+$sql = "SELECT * FROM penjualan";
+if (!empty($search_query)) {
+    $sql .= " WHERE id_penjualan LIKE :search";
+}
+$sql .= " ORDER BY tgl_jual DESC, id_penjualan DESC";
+
+$stmt = $pdo->prepare($sql);
+if (!empty($search_query)) {
+    $stmt->bindValue(':search', '%' . $search_query . '%');
+}
+$stmt->execute();
+$sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 $products = $pdo->query("SELECT kd_barang, nama_barang, stok FROM barang ORDER BY nama_barang")->fetchAll(PDO::FETCH_ASSOC);
 $today = date('Y-m-d');
 ?>
@@ -154,6 +167,12 @@ $today = date('Y-m-d');
             </div>
             
             <div class="p-6">
+                <form method="GET" action="" class="mb-4">
+                    <div class="flex items-center">
+                        <input type="text" name="search" class="w-full px-4 py-2 border rounded-l-lg" placeholder="Cari ID penjualan..." value="<?php echo htmlspecialchars($search_query); ?>">
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg">Cari</button>
+                    </div>
+                </form>
                 <div class="overflow-x-auto">
                     <table class="min-w-full">
                         <thead class="bg-gray-50">

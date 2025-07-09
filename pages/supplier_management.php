@@ -10,6 +10,7 @@ if ($_SESSION['user']['level'] !== 'admin') {
 
 $message = '';
 $error = '';
+$search_query = $_GET['search'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
@@ -74,21 +75,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-$stmt = $pdo->query("SELECT * FROM supplier ORDER BY nama_supplier");
+$sql = "SELECT * FROM supplier";
+if (!empty($search_query)) {
+    $sql .= " WHERE nama_supplier LIKE :search";
+}
+$sql .= " ORDER BY nama_supplier";
+
+$stmt = $pdo->prepare($sql);
+if (!empty($search_query)) {
+    $stmt->bindValue(':search', '%' . $search_query . '%');
+}
+$stmt->execute();
 $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<!-- Tambahkan link ke file CSS responsif di dalam <head> -->
 <head>
-    <!-- ... tag head Anda yang lain ... -->
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
-<!-- Tambahkan kelas 'flex-container' untuk layout utama -->
 <div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
-        <!-- Notifications -->
         <?php if ($message): ?>
             <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification">
                 <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
@@ -109,13 +116,11 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
-                    <!-- Tambahkan kelas 'card-header' untuk layout responsif -->
                     <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Supplier</h3>
                             <p class="text-blue-100 mt-1">Total: <?php echo count($suppliers); ?> supplier</p>
                         </div>
-                        <!-- Tambahkan kelas 'add-button' untuk styling responsif -->
                         <button onclick="showAddSupplierForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                             <i class="fas fa-plus mr-2"></i>Tambah Supplier
                         </button>
@@ -123,6 +128,12 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
                 
                 <div class="p-6">
+                    <form method="GET" action="" class="mb-4">
+                        <div class="flex items-center">
+                            <input type="text" name="search" class="w-full px-4 py-2 border rounded-l-lg" placeholder="Cari nama supplier..." value="<?php echo htmlspecialchars($search_query); ?>">
+                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg">Cari</button>
+                        </div>
+                    </form>
                     <?php if (empty($suppliers)): ?>
                         <div class="text-center py-12">
                             <i class="fas fa-truck text-gray-400 text-6xl mb-4"></i>
@@ -131,7 +142,6 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <!-- Tambahkan kelas 'responsive-table' ke tabel -->
                             <table class="min-w-full responsive-table">
                                 <thead>
                                     <tr class="border-b border-gray-200">
@@ -145,12 +155,10 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <tbody class="divide-y divide-gray-200">
                                     <?php foreach ($suppliers as $supplier): ?>
                                         <tr class="hover:bg-gray-50 transition duration-200">
-                                            <!-- Tambahkan atribut data-label untuk setiap sel -->
                                             <td data-label="ID" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($supplier['id_supplier']); ?></td>
                                             <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></td>
                                             <td data-label="Alamat" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($supplier['alamat']); ?></td>
                                             <td data-label="No. Telpon" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['no_telpon']); ?></td>
-                                            <!-- Tambahkan kelas 'actions-cell' untuk kolom aksi -->
                                             <td class="px-6 py-4 text-center actions-cell">
                                                 <div class="flex justify-center space-x-2">
                                                     <button onclick="editSupplier('<?php echo $supplier['id_supplier']; ?>', '<?php echo htmlspecialchars(addslashes($supplier['nama_supplier'])); ?>', '<?php echo htmlspecialchars(addslashes($supplier['alamat'])); ?>', '<?php echo htmlspecialchars($supplier['no_telpon']); ?>')" 
@@ -173,7 +181,6 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- Modal -->
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
             <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-xl">
