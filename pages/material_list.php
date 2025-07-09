@@ -4,18 +4,17 @@ require_once '../includes/function.php';
 require_once '../includes/header.php';
 
 // Mengambil semua data bahan baku
-$stmt = $pdo->query("SELECT * FROM bahan ORDER BY nama_bahan");
+$search_query = $_GET['search'] ?? '';
+$stmt = $pdo->prepare("SELECT * FROM bahan WHERE kd_bahan LIKE :search OR nama_bahan LIKE :search ORDER BY nama_bahan");
+$stmt->bindValue(':search', '%' . $search_query . '%');
+$stmt->execute();
 $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<!-- Tambahkan link ke file CSS responsif di dalam <head> -->
-
 <head>
-    <!-- ... tag head Anda yang lain ... -->
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
-<!-- Tambahkan kelas 'flex-container' untuk layout utama -->
 <div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
@@ -36,6 +35,12 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
 
                 <div class="p-6">
+                    <div class="mb-6 relative">
+                        <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10" placeholder="Cari kode atau nama bahan..." value="<?php echo htmlspecialchars($search_query); ?>">
+                        <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </div>
                     <?php if (empty($materials)): ?>
                         <div class="text-center py-12">
                             <i class="fas fa-box-open text-gray-400 text-6xl mb-4"></i>
@@ -44,7 +49,6 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <!-- Tambahkan kelas 'responsive-table' ke tabel -->
                             <table class="min-w-full responsive-table">
                                 <thead>
                                     <tr class="border-b border-gray-200">
@@ -54,10 +58,9 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Satuan</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-200">
+                                <tbody class="divide-y divide-gray-200" id="materialsTableBody">
                                     <?php foreach ($materials as $material): ?>
-                                        <tr class="hover:bg-gray-50 transition duration-200">
-                                            <!-- Tambahkan atribut data-label untuk setiap sel -->
+                                        <tr class="hover:bg-gray-50 transition duration-200" data-name="<?php echo strtolower(htmlspecialchars($material['kd_bahan'] . ' ' . $material['nama_bahan'])); ?>">
                                             <td data-label="Kode" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($material['kd_bahan']); ?></td>
                                             <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($material['nama_bahan']); ?></td>
                                             <td data-label="Stok" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($material['stok']); ?></td>
@@ -73,5 +76,15 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </main>
 </div>
-
+<script>
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const tableRows = document.querySelectorAll('#materialsTableBody .material-row');
+        
+        tableRows.forEach(row => {
+            const name = row.dataset.name.toLowerCase();
+            row.style.display = name.includes(searchTerm) ? '' : 'none';
+        });
+    });
+</script>
 <?php require_once '../includes/footer.php'; ?>
