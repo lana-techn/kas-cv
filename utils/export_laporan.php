@@ -7,7 +7,7 @@ require_once '../includes/function.php';
 
 // Validasi input dari URL
 $report_type = $_GET['type'] ?? 'penjualan';
-$start_date = $_GET['start'] ?? date('Y-m-d');
+$start_date = $_GET['start'] ?? date('Y-m-01');
 $end_date = $_GET['end'] ?? date('Y-m-d');
 
 // Atur header untuk memicu download file Excel
@@ -15,121 +15,131 @@ $filename = "Laporan_{$report_type}_" . date('Ymd') . ".xls";
 header("Content-Type: application/vnd.ms-excel");
 header("Content-Disposition: attachment; filename=\"$filename\"");
 
-// Logika untuk mengambil data berdasarkan jenis laporan
+// ======================= LOGIKA PENGAMBILAN DATA =======================
 $query = "";
-$params = [$start_date, $end_date];
+$params = [];
 $headers = [];
 $columns = [];
-$total_column = '';
+$data = [];
+$report_title = "Laporan " . ucwords(str_replace('_', ' ', $report_type));
 
 switch ($report_type) {
     case 'penjualan':
-        $query = "SELECT id_penjualan, tgl_jual, total_jual FROM penjualan WHERE tgl_jual BETWEEN ? AND ? ORDER BY tgl_jual";
-        $headers = ['ID Penjualan', 'Tanggal', 'Total'];
-        $columns = ['id_penjualan', 'tgl_jual', 'total_jual'];
-        $total_column = 'total_jual';
+        $query = "SELECT id_penjualan, tgl_jual, total_jual, bayar, kembali FROM penjualan WHERE tgl_jual BETWEEN ? AND ? ORDER BY tgl_jual";
+        $params = [$start_date, $end_date];
+        $headers = ['No.', 'Id Jual', 'Tanggal', 'Total', 'Bayar', 'Kembali'];
+        $columns = ['id_penjualan', 'tgl_jual', 'total_jual', 'bayar', 'kembali'];
         break;
+
     case 'pembelian':
-        $query = "SELECT p.id_pembelian, p.tgl_beli, s.nama_supplier, p.total_beli FROM pembelian p JOIN supplier s ON p.id_supplier = s.id_supplier WHERE p.tgl_beli BETWEEN ? AND ? ORDER BY p.tgl_beli";
-        $headers = ['ID Pembelian', 'Tanggal', 'Supplier', 'Total'];
-        $columns = ['id_pembelian', 'tgl_beli', 'nama_supplier', 'total_beli'];
-        $total_column = 'total_beli';
+        $query = "SELECT p.id_pembelian, p.tgl_beli, s.nama_supplier, p.total_beli, p.bayar, p.kembali FROM pembelian p JOIN supplier s ON p.id_supplier = s.id_supplier WHERE p.tgl_beli BETWEEN ? AND ? ORDER BY p.tgl_beli";
+        $params = [$start_date, $end_date];
+        $headers = ['No.', 'Id Beli', 'Tanggal', 'Supplier', 'Total', 'Bayar', 'Kembali'];
+        $columns = ['id_pembelian', 'tgl_beli', 'nama_supplier', 'total_beli', 'bayar', 'kembali'];
         break;
+
     case 'penerimaan_kas':
-        $query = "SELECT id_penerimaan_kas, tgl_terima_kas, uraian, total FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ? ORDER BY tgl_terima_kas";
-        $headers = ['ID Penerimaan', 'Tanggal', 'Uraian', 'Total'];
-        $columns = ['id_penerimaan_kas', 'tgl_terima_kas', 'uraian', 'total'];
-        $total_column = 'total';
+        $query = "SELECT tgl_terima_kas, uraian, total FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ? ORDER BY tgl_terima_kas";
+        $params = [$start_date, $end_date];
+        $headers = ['No.', 'Tanggal', 'Uraian', 'Jumlah (Rp)'];
+        $columns = ['tgl_terima_kas', 'uraian', 'total'];
         break;
+
     case 'pengeluaran_kas':
-        $query = "SELECT id_pengeluaran_kas, tgl_pengeluaran_kas, uraian, total FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ? ORDER BY tgl_pengeluaran_kas";
-        $headers = ['ID Pengeluaran', 'Tanggal', 'Uraian', 'Total'];
-        $columns = ['id_pengeluaran_kas', 'tgl_pengeluaran_kas', 'uraian', 'total'];
-        $total_column = 'total';
+        $query = "SELECT tgl_pengeluaran_kas, uraian, total FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ? ORDER BY tgl_pengeluaran_kas";
+        $params = [$start_date, $end_date];
+        $headers = ['No.', 'Tanggal', 'Uraian', 'Jumlah (Rp)'];
+        $columns = ['tgl_pengeluaran_kas', 'uraian', 'total'];
         break;
+        
     case 'buku_besar':
-        $query = "(SELECT tgl_terima_kas as tanggal, uraian, total as debit, 0 as kredit FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ?) 
-                  UNION ALL 
-                  (SELECT tgl_pengeluaran_kas as tanggal, uraian, 0 as debit, total as kredit FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ?) 
-                  ORDER BY tanggal";
+        $report_title = "Laporan Buku Besar";
+        // 1. Hitung Saldo Awal
+        $stmt_saldo_awal = $pdo->prepare("SELECT (SELECT COALESCE(SUM(total), 0) FROM penerimaan_kas WHERE tgl_terima_kas < ?) - (SELECT COALESCE(SUM(total), 0) FROM pengeluaran_kas WHERE tgl_pengeluaran_kas < ?) as saldo_awal");
+        $stmt_saldo_awal->execute([$start_date, $start_date]);
+        $saldo_awal = $stmt_saldo_awal->fetchColumn();
+
+        // 2. Query untuk transaksi pada periode yang dipilih
+        $query = "(SELECT tgl_terima_kas as tanggal, uraian, total as debit, 0 as kredit FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ?) UNION ALL (SELECT tgl_pengeluaran_kas as tanggal, uraian, 0 as debit, total as kredit FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ?) ORDER BY tanggal ASC";
         $params = [$start_date, $end_date, $start_date, $end_date];
-        $headers = ['Tanggal', 'Uraian', 'Debit', 'Kredit'];
-        $columns = ['tanggal', 'uraian', 'debit', 'kredit'];
+        $headers = ['No.', 'Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo'];
+        $columns = ['tanggal', 'uraian', 'debit', 'kredit', 'saldo']; // 'saldo' adalah kolom virtual
         break;
 }
 
-$stmt = $pdo->prepare($query);
-$stmt->execute($params);
-$data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if (!empty($query)) {
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
-// Membuat output tabel HTML untuk file Excel
+// ======================= MEMBUAT OUTPUT HTML UNTUK EXCEL =======================
 echo '<html xmlns:x="urn:schemas-microsoft-com:office:excel">';
-echo '<head><meta charset="UTF-8"></head><body>';
-echo '<h2>Laporan ' . ucwords(str_replace('_', ' ', $report_type)) . '</h2>';
+echo '<head><meta charset="UTF-8"><title>' . htmlspecialchars($report_title) . '</title></head><body>';
+echo '<h2>' . htmlspecialchars($report_title) . '</h2>';
 echo '<h4>Periode: ' . date('d M Y', strtotime($start_date)) . ' - ' . date('d M Y', strtotime($end_date)) . '</h4>';
 echo '<table border="1">';
-// Header tabel
+
+// --- Header Tabel ---
 echo '<thead><tr>';
 foreach ($headers as $header) {
-    echo '<th>' . htmlspecialchars($header) . '</th>';
+    echo '<th style="background-color:#f2f2f2; font-weight:bold;">' . htmlspecialchars($header) . '</th>';
 }
 echo '</tr></thead>';
 
-// Isi tabel
+// --- Isi Tabel ---
 echo '<tbody>';
-if (empty($data)) {
+if (empty($data) && $report_type != 'buku_besar') {
     echo '<tr><td colspan="' . count($headers) . '" style="text-align:center;">Tidak ada data.</td></tr>';
 } else {
-    $total = 0;
-    $total_debit = 0;
-    $total_kredit = 0;
-
-    foreach ($data as $row) {
-        echo '<tr>';
-        foreach ($columns as $col) {
-            $value = $row[$col];
-            $style = '';
-            
-            // Format tanggal dan angka
-            if (in_array($col, ['tgl_jual', 'tgl_beli', 'tgl_terima_kas', 'tgl_pengeluaran_kas', 'tanggal'])) {
-                $value = date('d-m-Y', strtotime($value));
-            } elseif (is_numeric($value)) {
-                $style = 'mso-number-format:"\#\,\#\#0"'; // Format angka untuk Excel
-            }
-
-            echo '<td style="' . $style . '">' . htmlspecialchars($value) . '</td>';
-        }
-        echo '</tr>';
-
-        // Kalkulasi total
-        if ($report_type === 'buku_besar') {
-            $total_debit += $row['debit'];
-            $total_kredit += $row['kredit'];
-        } elseif (!empty($total_column)) {
-            $total += $row[$total_column];
-        }
-    }
-}
-echo '</tbody>';
-
-// Footer tabel (Total)
-if (!empty($data)) {
-    echo '<tfoot>';
+    $grand_total = 0;
+    
+    // Logika Khusus untuk Buku Besar
     if ($report_type === 'buku_besar') {
-        echo '<tr><td colspan="2" style="text-align:right; font-weight:bold;">Total</td>';
-        echo '<td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . $total_debit . '</td>';
-        echo '<td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . $total_kredit . '</td></tr>';
-        echo '<tr><td colspan="3" style="text-align:right; font-weight:bold;">Saldo Akhir</td>';
-        echo '<td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . ($total_debit - $total_kredit) . '</td></tr>';
-    } else {
-        echo '<tr><td colspan="' . (count($headers) - 1) . '" style="text-align:right; font-weight:bold;">Total</td>';
-        echo '<td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . $total . '</td></tr>';
+        echo '<tr><td colspan="' . (count($headers) - 1) . '" style="text-align:right; font-weight:bold;">Saldo Awal</td><td style="mso-number-format:\#\,\#\#0; font-weight:bold;">' . $saldo_awal . '</td></tr>';
+        $saldo_berjalan = $saldo_awal;
+        foreach ($data as $index => $row) {
+            $saldo_berjalan += $row['debit'] - $row['kredit'];
+            echo '<tr>';
+            echo '<td>' . ($index + 1) . '.</td>';
+            echo '<td>' . date('d-m-Y', strtotime($row['tanggal'])) . '</td>';
+            echo '<td>' . htmlspecialchars($row['uraian']) . '</td>';
+            echo '<td style="mso-number-format:\#\,\#\#0;">' . ($row['debit'] > 0 ? $row['debit'] : '-') . '</td>';
+            echo '<td style="mso-number-format:\#\,\#\#0;">' . ($row['kredit'] > 0 ? $row['kredit'] : '-') . '</td>';
+            echo '<td style="mso-number-format:\#\,\#\#0; font-weight:bold;">' . $saldo_berjalan . '</td>';
+            echo '</tr>';
+        }
+        // Footer untuk Saldo Akhir
+        echo '<tfoot><tr><td colspan="' . (count($headers) - 1) . '" style="text-align:right; font-weight:bold;">Saldo Akhir</td><td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . $saldo_berjalan . '</td></tr></tfoot>';
+    
+    } else { // Untuk Laporan Lainnya
+        foreach ($data as $index => $row) {
+            echo '<tr>';
+            echo '<td>' . ($index + 1) . '.</td>'; // Kolom Nomor
+            foreach ($columns as $col) {
+                $value = $row[$col] ?? '';
+                $style = '';
+                
+                if (strpos($col, 'tgl_') !== false) {
+                    $value = date('d-m-Y', strtotime($value));
+                } elseif (is_numeric($value)) {
+                    $style = 'mso-number-format:"\#\,\#\#0"'; // Format angka untuk Excel
+                }
+                echo '<td style="' . $style . '">' . htmlspecialchars($value) . '</td>';
+            }
+            echo '</tr>';
+            // Kalkulasi grand total
+            $total_col_name = $total_column ?? '';
+            if(!empty($total_col_name)) $grand_total += (float)($row[$total_col_name] ?? 0);
+        }
+        // Footer untuk Total
+        if (!empty($data) && !empty($total_column)) {
+            $colspan = count($headers) - 1;
+             echo '<tfoot><tr><td colspan="' . $colspan . '" style="text-align:right; font-weight:bold;">Total</td><td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . $grand_total . '</td></tr></tfoot>';
+        }
     }
-    echo '</tfoot>';
 }
-
-echo '</table>';
-echo '</body></html>';
+echo '</tbody></table></body></html>';
 
 // Membersihkan output buffer dan mengirimkannya ke browser
 ob_end_flush();

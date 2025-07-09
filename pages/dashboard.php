@@ -94,27 +94,20 @@ if ($userLevel === 'admin') {
     $stmtLowStockProduk->execute([$lowStockThreshold]);
     $data['lowStockProducts'] = $stmtLowStockProduk->fetchColumn();
 } elseif ($userLevel === 'pemilik') {
-    // --- Data untuk Statistik Pemilik ---
-    $data['totalBarang'] = $pdo->query("SELECT COUNT(*) FROM barang")->fetchColumn();
-    $data['totalPenjualan'] = $pdo->query("SELECT SUM(total_jual) FROM penjualan")->fetchColumn() ?? 0;
-    $totalPembelian = $pdo->query("SELECT SUM(total_beli) FROM pembelian")->fetchColumn() ?? 0;
-    $totalBiaya = $pdo->query("SELECT SUM(total) FROM biaya")->fetchColumn() ?? 0;
-    $data['totalPengeluaran'] = $totalPembelian + $totalBiaya;
-    $data['saldoKas'] = $data['totalPenjualan'] - $data['totalPengeluaran'];
-
     // --- Data untuk Grafik Pemilik ---
-    $salesData = array_fill(0, 12, 0);
-    $purchasesData = array_fill(0, 12, 0);
-    $stmt_sales = $pdo->query("SELECT MONTH(tgl_jual) as month, SUM(total_jual) as total FROM penjualan GROUP BY MONTH(tgl_jual)");
-    while ($row = $stmt_sales->fetch(PDO::FETCH_ASSOC)) {
-        $salesData[$row['month'] - 1] = (float)$row['total'];
-    }
-    $stmt_purchases = $pdo->query("SELECT MONTH(tgl_beli) as month, SUM(total_beli) as total FROM pembelian GROUP BY MONTH(tgl_beli)");
-    while ($row = $stmt_purchases->fetch(PDO::FETCH_ASSOC)) {
-        $purchasesData[$row['month'] - 1] = (float)$row['total'];
-    }
-    $data['salesChartData'] = json_encode($salesData);
-    $data['purchasesChartData'] = json_encode($purchasesData);
+    date_default_timezone_set('Asia/Jakarta');
+    $today = date('Y-m-d');
+    $default_start_date = date('Y-m-d', strtotime('-29 days'));
+    $default_end_date = $today;
+    $report_type = $_POST['report_type'] ?? 'penjualan';
+    $start_date = $_POST['start_date'] ?? $default_start_date;
+    $end_date = $_POST['end_date'] ?? $default_end_date;
+    if ($end_date > $today) $end_date = $today;
+    if ($start_date > $end_date) $start_date = $end_date;
+    $total_penjualan = $pdo->query("SELECT SUM(total_jual) as total FROM penjualan")->fetchColumn() ?? 0;
+    $total_pembelian = $pdo->query("SELECT SUM(total_beli) as total FROM pembelian")->fetchColumn() ?? 0;
+    $total_biaya = $pdo->query("SELECT SUM(total) as total FROM biaya")->fetchColumn() ?? 0;
+    $saldo_kas = $total_penjualan - ($total_pembelian + $total_biaya);
 }
 ?>
 <div class="flex min-h-screen">
@@ -254,28 +247,47 @@ if ($userLevel === 'admin') {
                     </div>
                 </div>
             <?php elseif ($userLevel === 'pemilik'): ?>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <p class="text-sm font-medium text-gray-600">Total Penjualan</p>
-                        <p class="text-2xl font-semibold text-gray-900"><?php echo formatCurrency($data['totalPenjualan']); ?></p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold text-gray-500">Total Penjualan</h3>
+                                <p class="text-2xl md:text-3xl font-bold text-gray-800 mt-2"><?php echo formatCurrency($total_penjualan); ?></p>
+                            </div>
+                            <div class="p-3 bg-blue-100 rounded-lg"><i class="fas fa-shopping-cart text-2xl text-blue-500"></i></div>
+                        </div>
                     </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <p class="text-sm font-medium text-gray-600">Total Pengeluaran</p>
-                        <p class="text-2xl font-semibold text-gray-900"><?php echo formatCurrency($data['totalPengeluaran']); ?></p>
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold text-gray-500">Total Pengeluaran</h3>
+                                <p class="text-2xl md:text-3xl font-bold text-gray-800 mt-2"><?php echo formatCurrency($total_pembelian + $total_biaya); ?></p>
+                            </div>
+                            <div class="p-3 bg-red-100 rounded-lg"><i class="fas fa-money-bill-wave text-2xl text-red-500"></i></div>
+                        </div>
                     </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <p class="text-sm font-medium text-gray-600">Saldo Kas</p>
-                        <p class="text-2xl font-semibold text-gray-900"><?php echo formatCurrency($data['saldoKas']); ?></p>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <p class="text-sm font-medium text-gray-600">Total Barang</p>
-                        <p class="text-2xl font-semibold text-gray-900"><?php echo $data['totalBarang']; ?></p>
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold text-gray-500">Saldo Kas</h3>
+                                <p class="text-2xl md:text-3xl font-bold text-gray-800 mt-2"><?php echo formatCurrency($saldo_kas); ?></p>
+                            </div>
+                            <div class="p-3 bg-green-100 rounded-lg"><i class="fas fa-wallet text-2xl text-green-500"></i></div>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="text-lg font-semibold mb-4">Grafik Keuangan</h3>
-                    <div style="height:400px;"><canvas id="salesChart"></canvas></div>
+                <!-- Grafik Penjualan dan Pembelian -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4"><i class="fas fa-chart-pie mr-2 text-blue-500"></i>Perbandingan Penjualan vs Pembelian</h3>
+                        <div class="relative h-64 md:h-72"><canvas id="comparisonChart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4"><i class="fas fa-chart-line mr-2 text-green-500"></i>Trend Penjualan (7 Hari Terakhir)</h3>
+                        <div class="relative h-64 md:h-72"><canvas id="trendChart"></canvas></div>
+                    </div>
                 </div>
+
             <?php endif; ?>
 
         </div>
@@ -284,24 +296,102 @@ if ($userLevel === 'admin') {
 <?php if ($userLevel === 'pemilik'): ?>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                datasets: [{
-                    label: 'Penjualan',
-                    data: <?php echo $data['salesChartData']; ?>,
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                }, {
-                    label: 'Pembelian',
-                    data: <?php echo $data['purchasesChartData']; ?>,
-                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
+        document.addEventListener('DOMContentLoaded', function() {
+            // ... (JavaScript untuk grafik tetap sama) ...
+            const comparisonCtx = document.getElementById('comparisonChart');
+            if (comparisonCtx) {
+                new Chart(comparisonCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Penjualan', 'Pembelian'],
+                        datasets: [{
+                            data: [<?php echo $total_penjualan; ?>, <?php echo $total_pembelian; ?>],
+                            backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(239, 68, 68, 0.8)'],
+                            borderColor: ['#ffffff'],
+                            borderWidth: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+            <?php
+            $sales_trend = [];
+            $labels_trend = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $date = date('Y-m-d', strtotime("-$i days"));
+                $stmt = $pdo->prepare("SELECT COALESCE(SUM(total_jual), 0) as total FROM penjualan WHERE DATE(tgl_jual) = ?");
+                $stmt->execute([$date]);
+                $sales_trend[] = $stmt->fetchColumn();
+                $labels_trend[] = date('d M', strtotime($date));
+            }
+            ?>
+            const trendCtx = document.getElementById('trendChart');
+            if (trendCtx) {
+                new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: <?php echo json_encode($labels_trend); ?>,
+                        datasets: [{
+                            label: 'Penjualan',
+                            data: <?php echo json_encode($sales_trend); ?>,
+                            borderColor: 'rgba(22, 163, 74, 1)',
+                            backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ' ' + context.dataset.label + ': ' + new Intl.NumberFormat('id-ID', {
+                                            style: 'currency',
+                                            currency: 'IDR'
+                                        }).format(context.parsed.y);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: (value) => new Intl.NumberFormat('id-ID', {
+                                        notation: 'compact'
+                                    }).format(value)
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
             }
         });
     </script>
