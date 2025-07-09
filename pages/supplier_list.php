@@ -3,10 +3,22 @@ require_once '../config/db_connect.php';
 require_once '../includes/function.php';
 require_once '../includes/header.php';
 
-// Mengambil semua data supplier
+// Mengambil semua data supplier dengan pagination
 $search_query = $_GET['search'] ?? '';
-$stmt = $pdo->prepare("SELECT * FROM supplier WHERE id_supplier LIKE :search OR nama_supplier LIKE :search OR alamat LIKE :search OR no_telpon LIKE :search ORDER BY nama_supplier");
+$perPage = 10; // Jumlah item per halaman
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $perPage;
+
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM supplier WHERE id_supplier LIKE :search OR nama_supplier LIKE :search OR alamat LIKE :search OR no_telpon LIKE :search");
 $stmt->bindValue(':search', '%' . $search_query . '%');
+$stmt->execute();
+$totalItems = $stmt->fetchColumn();
+$totalPages = ceil($totalItems / $perPage);
+
+$stmt = $pdo->prepare("SELECT * FROM supplier WHERE id_supplier LIKE :search OR nama_supplier LIKE :search OR alamat LIKE :search OR no_telpon LIKE :search ORDER BY nama_supplier LIMIT :limit OFFSET :offset");
+$stmt->bindValue(':search', '%' . $search_query . '%');
+$stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -29,7 +41,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="flex justify-between items-center">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Informasi Supplier</h3>
-                            <p class="text-blue-100 mt-1">Total: <?php echo count($suppliers); ?> supplier</p>
+                            <p class="text-blue-100 mt-1">Total: <?php echo $totalItems; ?> supplier</p>
                         </div>
                     </div>
                 </div>
@@ -49,9 +61,9 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full responsive-table">
+                            <table class="min-w-full responsive-table border border-gray-300">
                                 <thead>
-                                    <tr class="border-b border-gray-200">
+                                    <tr class="bg-gray-50">
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Supplier</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Supplier</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Alamat</th>
@@ -71,6 +83,14 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </table>
                         </div>
                     <?php endif; ?>
+                    <!-- Pagination -->
+                    <div class="flex justify-end mt-2 p-2">
+                        <div class="flex items-center space-x-2 text-sm">
+                            <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo max(1, $page - 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page <= 1 ? 'opacity-50 cursor-not-allowed' : ''; ?>">Prev</a>
+                            <span class="px-2"><?php echo $page; ?> / <?php echo $totalPages; ?></span>
+                            <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo min($totalPages, $page + 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page >= $totalPages ? 'opacity-50 cursor-not-allowed' : ''; ?>">Next</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
