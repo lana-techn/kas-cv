@@ -128,16 +128,8 @@ if (!isset($_SESSION['temp_sale_id'])) {
 }
 
 // Pengambilan data untuk ditampilkan
-$sql = "SELECT * FROM penjualan";
-if (!empty($search_query)) {
-    $sql .= " WHERE id_penjualan LIKE :search";
-}
-$sql .= " ORDER BY tgl_jual DESC, id_penjualan DESC";
-
+$sql = "SELECT * FROM penjualan ORDER BY tgl_jual DESC, id_penjualan DESC";
 $stmt = $pdo->prepare($sql);
-if (!empty($search_query)) {
-    $stmt->bindValue(':search', '%' . $search_query . '%');
-}
 $stmt->execute();
 $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -167,12 +159,12 @@ $today = date('Y-m-d');
             </div>
             
             <div class="p-6">
-                <form method="GET" action="" class="mb-4">
-                    <div class="flex items-center">
-                        <input type="text" name="search" class="w-full px-4 py-2 border rounded-l-lg" placeholder="Cari ID penjualan..." value="<?php echo htmlspecialchars($search_query); ?>">
-                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg">Cari</button>
-                    </div>
-                </form>
+                <div class="mb-6 relative">
+                    <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10" placeholder="Cari ID penjualan..." value="<?php echo htmlspecialchars($search_query); ?>">
+                    <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                        <i class="fas fa-search"></i>
+                    </span>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full">
                         <thead class="bg-gray-50">
@@ -186,12 +178,12 @@ $today = date('Y-m-d');
                                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody class="bg-white divide-y divide-gray-200" id="salesTableBody">
                              <?php if(empty($sales)): ?>
                                 <tr><td colspan="7" class="text-center p-5 text-gray-500">Tidak ada data penjualan.</td></tr>
                             <?php else: ?>
                                 <?php foreach ($sales as $index => $sale): ?>
-                                    <tr class="hover:bg-gray-50">
+                                    <tr class="sales-row" data-name="<?php echo strtolower(htmlspecialchars($sale['id_penjualan'])); ?>">
                                         <td class="px-6 py-4 text-center text-sm text-gray-500"><?php echo $index + 1; ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?php echo htmlspecialchars($sale['id_penjualan']); ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?php echo date('d M Y', strtotime($sale['tgl_jual'])); ?></td>
@@ -220,7 +212,7 @@ $today = date('Y-m-d');
         <form id="sale-form" method="POST" class="flex flex-col flex-grow">
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-5 rounded-t-xl flex justify-between items-center">
                 <h3 id="modal-title" class="text-xl font-semibold text-white">Input Data Penjualan</h3>
-                <button type="button" onclick="closeModalSales()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
+                <button type="button" onclick="closeModalSales()" class="text-white hover:text-gray-200 text-2xl">×</button>
             </div>
             
             <div class="p-6 overflow-y-auto space-y-6">
@@ -402,6 +394,17 @@ $today = date('Y-m-d');
         document.getElementById('kembali').value = kembali;
         document.getElementById('kembali_display').value = currencyFormatter.format(kembali);
     }
+
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const tableRows = document.querySelectorAll('#salesTableBody .sales-row');
+        
+        tableRows.forEach(row => {
+            const name = row.dataset.name.toLowerCase();
+            row.style.display = name.includes(searchTerm) ? '' : 'none';
+        });
+    });
 </script>
 
 <?php require_once '../includes/footer.php'; ?>
