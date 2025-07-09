@@ -75,16 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-$sql = "SELECT * FROM supplier";
-if (!empty($search_query)) {
-    $sql .= " WHERE nama_supplier LIKE :search";
-}
-$sql .= " ORDER BY nama_supplier";
-
+// Mengambil semua data supplier tanpa filter pencarian
+$sql = "SELECT * FROM supplier ORDER BY nama_supplier";
 $stmt = $pdo->prepare($sql);
-if (!empty($search_query)) {
-    $stmt->bindValue(':search', '%' . $search_query . '%');
-}
 $stmt->execute();
 $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -128,12 +121,12 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
                 
                 <div class="p-6">
-                    <form method="GET" action="" class="mb-4">
-                        <div class="flex items-center">
-                            <input type="text" name="search" class="w-full px-4 py-2 border rounded-l-lg" placeholder="Cari nama supplier..." value="<?php echo htmlspecialchars($search_query); ?>">
-                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg">Cari</button>
-                        </div>
-                    </form>
+                    <div class="mb-6 relative">
+                        <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10" placeholder="Cari nama supplier..." value="<?php echo htmlspecialchars($search_query); ?>">
+                        <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </div>
                     <?php if (empty($suppliers)): ?>
                         <div class="text-center py-12">
                             <i class="fas fa-truck text-gray-400 text-6xl mb-4"></i>
@@ -142,7 +135,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full responsive-table">
+                            <table class="min-w-full responsive-table" id="suppliersTable">
                                 <thead>
                                     <tr class="border-b border-gray-200">
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Supplier</th>
@@ -152,9 +145,9 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-200">
+                                <tbody id="suppliersTableBody" class="divide-y divide-gray-200">
                                     <?php foreach ($suppliers as $supplier): ?>
-                                        <tr class="hover:bg-gray-50 transition duration-200">
+                                        <tr class="supplier-row" data-name="<?php echo strtolower(htmlspecialchars($supplier['nama_supplier'])); ?>">
                                             <td data-label="ID" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($supplier['id_supplier']); ?></td>
                                             <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></td>
                                             <td data-label="Alamat" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($supplier['alamat']); ?></td>
@@ -338,6 +331,17 @@ function validateForm(form) {
     
     return true;
 }
+
+// Search functionality
+document.getElementById('searchInput').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const tableRows = document.querySelectorAll('#suppliersTableBody .supplier-row');
+    
+    tableRows.forEach(row => {
+        const name = row.dataset.name.toLowerCase();
+        row.style.display = name.includes(searchTerm) ? '' : 'none';
+    });
+});
 
 // Menutup notifikasi setelah beberapa detik
 document.addEventListener('DOMContentLoaded', (event) => {
