@@ -12,6 +12,7 @@ $message = '';
 $error = '';
 $search_query = $_GET['search'] ?? '';
 
+// Handle form actions (add, edit, delete) remains unchanged
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         if ($_POST['action'] === 'add') {
@@ -19,26 +20,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 throw new Exception('Nama barang tidak boleh kosong.');
             }
             $kd_barang = generateId('BRG');
-            // Stok awal selalu diatur ke 0. Stok akan bertambah dari proses produksi.
             $stmt = $pdo->prepare("INSERT INTO barang (kd_barang, nama_barang, stok) VALUES (?, ?, 0)");
             $stmt->execute([$kd_barang, $_POST['nama_barang']]);
             $message = 'Barang baru berhasil ditambahkan.';
-        } 
-        
-        elseif ($_POST['action'] === 'edit') {
+        } elseif ($_POST['action'] === 'edit') {
             if (empty($_POST['nama_barang']) || empty($_POST['kd_barang'])) {
                 throw new Exception('Data tidak lengkap.');
             }
-            // Pengguna hanya bisa mengubah nama barang. Stok tidak bisa diubah dari sini.
             $stmt = $pdo->prepare("UPDATE barang SET nama_barang = ? WHERE kd_barang = ?");
             $stmt->execute([$_POST['nama_barang'], $_POST['kd_barang']]);
             $message = 'Data barang berhasil diperbarui.';
-        } 
-        
-        elseif ($_POST['action'] === 'delete') {
+        } elseif ($_POST['action'] === 'delete') {
             $kd_barang = $_POST['kd_barang'];
-
-            // Periksa keterkaitan dengan tabel lain sebelum menghapus
             $stmt_check_prod = $pdo->prepare("SELECT COUNT(*) FROM produksi WHERE kd_barang = ?");
             $stmt_check_prod->execute([$kd_barang]);
             $in_production = $stmt_check_prod->fetchColumn();
@@ -60,20 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Ambil semua data barang untuk ditampilkan
-$sql = "SELECT kd_barang, nama_barang, stok FROM barang";
-if (!empty($search_query)) {
-    $sql .= " WHERE nama_barang LIKE :search";
-}
-$sql .= " ORDER BY nama_barang ASC";
-
+// Fetch all products without search filter
+$sql = "SELECT kd_barang, nama_barang, stok FROM barang ORDER BY nama_barang ASC";
 $stmt = $pdo->prepare($sql);
-if (!empty($search_query)) {
-    $stmt->bindValue(':search', '%' . $search_query . '%');
-}
 $stmt->execute();
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 ?>
 
 <head>
@@ -115,14 +99,14 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
 
                 <div class="p-6">
-                    <form method="GET" action="" class="mb-4">
-                        <div class="flex items-center">
-                            <input type="text" name="search" class="w-full px-4 py-2 border rounded-l-lg" placeholder="Cari nama barang..." value="<?php echo htmlspecialchars($search_query); ?>">
-                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg">Cari</button>
-                        </div>
-                    </form>
+                    <div class="mb-6 relative">
+                        <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 pr-10" placeholder="Cari nama barang..." value="<?php echo htmlspecialchars($search_query); ?>">
+                        <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full responsive-table">
+                        <table class="min-w-full responsive-table" id="productsTable">
                             <thead>
                                 <tr>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Kode Barang</th>
@@ -131,7 +115,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody id="productsTableBody" class="bg-white divide-y divide-gray-200">
                                 <?php if (empty($products)): ?>
                                     <tr>
                                         <td colspan="4" class="px-6 py-12 text-center text-gray-500">
@@ -143,7 +127,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($products as $product): ?>
-                                        <tr>
+                                        <tr class="product-row" data-name="<?php echo strtolower(htmlspecialchars($product['nama_barang'])); ?>">
                                             <td data-label="Kode" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($product['kd_barang']); ?></td>
                                             <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($product['nama_barang']); ?></td>
                                             <td data-label="Stok" class="px-6 py-4 text-sm font-bold text-gray-900"><?php echo htmlspecialchars($product['stok']); ?></td>
@@ -261,6 +245,17 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             form.submit();
         }
     }
+
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const tableRows = document.querySelectorAll('#productsTableBody .product-row');
+        
+        tableRows.forEach(row => {
+            const name = row.dataset.name.toLowerCase();
+            row.style.display = name.includes(searchTerm) ? '' : 'none';
+        });
+    });
 
     // Auto-hide notification
     setTimeout(() => {
