@@ -35,12 +35,15 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div id="productManagement" class="section active">
             <div class="mb-6">
                 <h2 class="text-3xl font-bold text-gray-800">Daftar Barang</h2>
-                <p class="text-gray-600 mt-2">Lihat data barang untuk kebutuhan penjualan dan produksi</p>
+                <p class="text-gray-600 mt-2">Menampilkan informasi barang yang tersedia</p>
             </div>
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <div class="flex justify-between items-center">
-                        <h3 class="text-xl font-semibold text-white">Daftar Barang</h3>
+                        <div>
+                            <h3 class="text-xl font-semibold text-white">Informasi Barang</h3>
+                            <p class="text-blue-100 mt-1">Total: <?php echo count($products); ?> barang</p>
+                        </div>
                     </div>
                 </div>
                 <div class="p-6">

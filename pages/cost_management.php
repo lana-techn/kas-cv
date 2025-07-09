@@ -3,55 +3,91 @@ require_once '../config/db_connect.php';
 require_once '../includes/function.php';
 require_once '../includes/header.php';
 
-// ... (Logika PHP Anda tetap sama) ...
+// Pastikan hanya admin atau pegawai yang bisa mengakses
 if (!in_array($_SESSION['user']['level'], ['admin', 'pegawai'])) {
     header('Location: dashboard.php');
     exit;
 }
+
 $message = '';
 $error = '';
+
+// Penanganan form POST untuk add, edit, dan delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         $pdo->beginTransaction();
+        
         if ($_POST['action'] === 'add') {
+            // Validasi input untuk penambahan biaya
             if (empty($_POST['nama_biaya']) || empty($_POST['tgl_biaya']) || !isset($_POST['total'])) {
                 throw new Exception('Semua field wajib diisi.');
             }
             if (!is_numeric($_POST['total']) || $_POST['total'] <= 0) {
                 throw new Exception('Total biaya harus berupa angka positif.');
             }
+            
+            // Proses penambahan biaya
             $id_biaya = $_POST['id_biaya'] ?: generateId('BYA');
             $stmt = $pdo->prepare("INSERT INTO biaya (id_biaya, nama_biaya, tgl_biaya, total) VALUES (?, ?, ?, ?)");
             $stmt->execute([$id_biaya, $_POST['nama_biaya'], $_POST['tgl_biaya'], $_POST['total']]);
+            
+            // Catat di pengeluaran kas
             $stmt = $pdo->prepare("INSERT INTO pengeluaran_kas (id_pengeluaran_kas, id_biaya, tgl_pengeluaran_kas, uraian, total) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([generateId('PKS'), $id_biaya, $_POST['tgl_biaya'], 'Biaya Operasional: ' . $_POST['nama_biaya'], $_POST['total']]);
+            
             $message = 'Biaya berhasil ditambahkan dan dicatat di kas keluar.';
+
+        } elseif ($_POST['action'] === 'edit') {
+            // Validasi input untuk edit biaya
+            if (empty($_POST['id_biaya']) || empty($_POST['nama_biaya']) || empty($_POST['tgl_biaya']) || !isset($_POST['total'])) {
+                throw new Exception('Semua field wajib diisi.');
+            }
+            if (!is_numeric($_POST['total']) || $_POST['total'] <= 0) {
+                throw new Exception('Total biaya harus berupa angka positif.');
+            }
+
+            // Proses update biaya
+            $stmt = $pdo->prepare("UPDATE biaya SET nama_biaya = ?, tgl_biaya = ?, total = ? WHERE id_biaya = ?");
+            $stmt->execute([$_POST['nama_biaya'], $_POST['tgl_biaya'], $_POST['total'], $_POST['id_biaya']]);
+            
+            // Update juga di pengeluaran kas
+            $stmt = $pdo->prepare("UPDATE pengeluaran_kas SET tgl_pengeluaran_kas = ?, uraian = ?, total = ? WHERE id_biaya = ?");
+            $stmt->execute([$_POST['tgl_biaya'], 'Biaya Operasional: ' . $_POST['nama_biaya'], $_POST['total'], $_POST['id_biaya']]);
+            
+            $message = 'Biaya berhasil diupdate.';
+
         } elseif ($_POST['action'] === 'delete') {
+            // Proses penghapusan biaya
+            // Hapus dulu dari pengeluaran kas (karena ada foreign key)
             $stmt = $pdo->prepare("DELETE FROM pengeluaran_kas WHERE id_biaya = ?");
             $stmt->execute([$_POST['id_biaya']]);
+            
+            // Hapus dari tabel biaya
             $stmt = $pdo->prepare("DELETE FROM biaya WHERE id_biaya = ?");
             $stmt->execute([$_POST['id_biaya']]);
+            
             $message = 'Biaya berhasil dihapus.';
         }
+        
         $pdo->commit();
     } catch (Exception $e) {
         $pdo->rollBack();
         $error = $e->getMessage();
     }
 }
+
+// Ambil semua data biaya
 $stmt = $pdo->query("SELECT * FROM biaya ORDER BY tgl_biaya DESC");
 $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <head>
-    <!-- Pastikan file responsive.css sudah dimuat -->
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
 <div class="flex min-h-screen bg-gray-100">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
-        <!-- Notifikasi -->
         <?php if ($message): ?>
             <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg notification">
                 <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
@@ -109,10 +145,16 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <td data-label="Tanggal" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars(date('d M Y', strtotime($cost['tgl_biaya']))); ?></td>
                                             <td data-label="Total" class="px-6 py-4 text-sm text-gray-900 font-medium text-right"><?php echo formatCurrency($cost['total']); ?></td>
                                             <td class="px-6 py-4 text-center actions-cell">
-                                                <button onclick="deleteCost('<?php echo $cost['id_biaya']; ?>', '<?php echo htmlspecialchars(addslashes($cost['nama_biaya'])); ?>')"
-                                                    class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <div class="flex justify-center space-x-2">
+                                                    <button onclick="showEditCostForm('<?php echo $cost['id_biaya']; ?>', '<?php echo htmlspecialchars(addslashes($cost['nama_biaya'])); ?>', '<?php echo $cost['tgl_biaya']; ?>', '<?php echo $cost['total']; ?>')"
+                                                        class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition duration-200" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button onclick="deleteCost('<?php echo $cost['id_biaya']; ?>', '<?php echo htmlspecialchars(addslashes($cost['nama_biaya'])); ?>')"
+                                                        class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200" title="Hapus">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -124,7 +166,6 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- Modal yang Disempurnakan -->
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-auto transform transition-all">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-5 rounded-t-xl">
@@ -142,6 +183,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <script>
+    // Fungsi untuk menampilkan dan menutup modal
     function showModal(title, content) {
         document.getElementById('modalTitle').innerHTML = title;
         document.getElementById('modalContent').innerHTML = content;
@@ -154,6 +196,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
         document.getElementById('modal').classList.remove('flex');
     }
 
+    // Fungsi untuk menampilkan form tambah biaya
     function showAddCostForm() {
         const today = new Date().toISOString().split('T')[0];
         const content = `
@@ -173,7 +216,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
                 <div>
                     <label for="tgl_biaya" class="block text-gray-700 text-sm font-semibold mb-2">Tanggal <span class="text-red-500">*</span></label>
-                    <input id="tgl_biaya" type="date" name="tgl_biaya" value="\${today}" required 
+                    <input id="tgl_biaya" type="date" name="tgl_biaya" value="${today}" required 
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
@@ -197,20 +240,65 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     `;
         showModal('Tambah Biaya Baru', content);
     }
+    
+    // *** BARU: Fungsi untuk menampilkan form edit biaya ***
+    function showEditCostForm(id, nama, tanggal, total) {
+        const content = `
+        <form method="POST" onsubmit="return validateForm(this)">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="id_biaya" value="${id}">
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">ID Biaya</label>
+                    <input type="text" value="${id}" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Nama Biaya <span class="text-red-500">*</span></label>
+                    <input type="text" name="nama_biaya" value="${nama}" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Tanggal <span class="text-red-500">*</span></label>
+                    <input type="date" name="tgl_biaya" value="${tanggal}" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Total (Rp) <span class="text-red-500">*</span></label>
+                    <input type="number" name="total" value="${total}" required min="1"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-8 pt-6 border-t">
+                <button type="button" onclick="closeModal()" 
+                        class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">
+                    Batal
+                </button>
+                <button type="submit" 
+                        class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200">
+                    <i class="fas fa-save mr-2"></i>Update
+                </button>
+            </div>
+        </form>
+    `;
+        showModal('Edit Biaya', content);
+    }
 
+
+    // Fungsi untuk menghapus biaya
     function deleteCost(id, nama) {
-        if (confirm(`Apakah Anda yakin ingin menghapus biaya "\${nama}"?\n\nTindakan ini juga akan menghapus catatan terkait di kas keluar dan tidak dapat dibatalkan.`)) {
+        if (confirm(`Apakah Anda yakin ingin menghapus biaya "${nama}"?\n\nTindakan ini juga akan menghapus catatan terkait di kas keluar dan tidak dapat dibatalkan.`)) {
             const form = document.createElement('form');
             form.method = 'POST';
             form.innerHTML = `
             <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="id_biaya" value="\${id}">
+            <input type="hidden" name="id_biaya" value="${id}">
         `;
             document.body.appendChild(form);
             form.submit();
         }
     }
 
+    // Fungsi validasi form
     function validateForm(form) {
         const nama = form.querySelector('input[name="nama_biaya"]').value.trim();
         const tanggal = form.querySelector('input[name="tgl_biaya"]').value.trim();
@@ -229,6 +317,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return true;
     }
 
+    // Menutup notifikasi setelah beberapa detik
     document.addEventListener('DOMContentLoaded', (event) => {
         document.querySelectorAll('.notification').forEach(notification => {
             setTimeout(() => {

@@ -26,11 +26,11 @@ CREATE TABLE barang (
 );
 
 -- Table Supplier
-CREATE TABLE supplier (
-    id_supplier VARCHAR(25) PRIMARY KEY,
-    nama_supplier VARCHAR(200) NOT NULL,
-    alamat VARCHAR(200) NOT NULL,
-    no_telpon INTEGER NOT NULL
+CREATE TABLE `supplier` (
+  `id_supplier` varchar(25) NOT NULL,
+  `nama_supplier` varchar(200) NOT NULL,
+  `alamat` varchar(200) NOT NULL,
+  `no_telpon` varchar(15) NOT NULL
 );
 
 -- Table Biaya

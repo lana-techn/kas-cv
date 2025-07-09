@@ -6,7 +6,7 @@ if (!isset($_GET['id'])) {
     header('Location: purchase_management.php');
     exit;
 }
-
+$no = 1;
 $id_pembelian = $_GET['id'];
 
 // Ambil data utama pembelian
@@ -78,20 +78,15 @@ $items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
                     <h1 class="text-3xl font-bold text-gray-800">FAKTUR PEMBELIAN</h1>
                     <p class="text-gray-500">ID: #<?php echo htmlspecialchars($purchase['id_pembelian']); ?></p>
                 </div>
-                <div class="text-right">
-                    <h2 class="text-xl font-semibold text-gray-700">CV. Karya Wahana Sentosa</h2>
-                    <p class="text-gray-500 text-sm">Perusahaan Manufaktur Tas</p>
-                </div>
+                
             </header>
 
             <section class="grid grid-cols-2 gap-8 mt-8">
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">Ditagih Kepada</h3>
                     <p class="text-lg font-bold text-gray-800">CV. Karya Wahana Sentosa</p>
-                    <p class="text-gray-600">Jl. Industri No. 123, Kota Industri</p>
+                    <p class="text-gray-600">Jl. Imogiri Barat Km. 17, Bungas, Jetis, Bantul, Yogyakarta</p>
                 </div>
                 <div class="text-right">
-                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">Supplier</h3>
                     <p class="text-lg font-bold text-gray-800"><?php echo htmlspecialchars($purchase['nama_supplier']); ?></p>
                     <p class="text-gray-600"><?php echo htmlspecialchars($purchase['alamat']); ?></p>
                     <p class="text-gray-600">Telp: <?php echo htmlspecialchars($purchase['no_telpon']); ?></p>
@@ -104,8 +99,10 @@ $items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
                 <table class="w-full">
                     <thead class="bg-gray-50">
                         <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No.</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Bahan</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Bahan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Beli</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Satuan</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
                         </tr>
@@ -113,6 +110,8 @@ $items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php foreach ($items as $item): ?>
                         <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?php echo $no++; ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($item['kd_bahan']); ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($item['nama_bahan']); ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right"><?php echo formatCurrency($item['harga_beli']); ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center"><?php echo $item['qty']; ?></td>
