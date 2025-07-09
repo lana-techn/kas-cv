@@ -10,6 +10,7 @@ if ($_SESSION['user']['level'] !== 'admin') {
 
 $message = '';
 $error = '';
+$search_query = $_GET['search'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
@@ -102,8 +103,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-$stmt = $pdo->query("SELECT p.*, b.nama_barang AS product_name FROM produksi p JOIN barang b ON p.kd_barang = b.kd_barang ORDER BY p.tgl_produksi DESC");
+$sql = "SELECT p.*, b.nama_barang AS product_name 
+        FROM produksi p 
+        JOIN barang b ON p.kd_barang = b.kd_barang";
+if (!empty($search_query)) {
+    $sql .= " WHERE p.id_produksi LIKE :search OR b.nama_barang LIKE :search";
+}
+$sql .= " ORDER BY p.tgl_produksi DESC";
+
+$stmt = $pdo->prepare($sql);
+if (!empty($search_query)) {
+    $stmt->bindValue(':search', '%' . $search_query . '%');
+}
+$stmt->execute();
 $productions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 $stmt = $pdo->query("SELECT kd_barang, nama_barang FROM barang");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("SELECT kd_bahan, nama_bahan, satuan FROM bahan");
@@ -157,6 +171,12 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
 
                 <div class="p-6">
+                    <form method="GET" action="" class="mb-4">
+                        <div class="flex items-center">
+                            <input type="text" name="search" class="w-full px-4 py-2 border rounded-l-lg" placeholder="Cari ID produksi atau nama barang..." value="<?php echo htmlspecialchars($search_query); ?>">
+                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg">Cari</button>
+                        </div>
+                    </form>
                     <div class="overflow-x-auto">
                         <table class="min-w-full responsive-table">
                             <thead>
