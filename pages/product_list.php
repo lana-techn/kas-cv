@@ -77,7 +77,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Stok</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-200" id="suppliersTableBody">
+                            <tbody class="divide-y divide-gray-200" id="productsTableBody">
                                 <?php foreach ($products as $product): ?>
                                     <tr class="product-row border-b border-gray-200" data-name="<?php echo strtolower(htmlspecialchars($product['kd_barang'] . ' ' . $product['nama_barang'])); ?>">
                                         <td class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($product['kd_barang']); ?></td>
@@ -105,10 +105,9 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     document.getElementById('searchInput').addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
         const tableRows = document.querySelectorAll('#productsTableBody .product-row');
-        
         tableRows.forEach(row => {
             const name = row.dataset.name.toLowerCase();
-            row.style.display = name.includes(searchTerm) ? '' : 'none';
+            row.style.display = !searchTerm || name.includes(searchTerm) ? '' : 'none';
         });
     });
 </script>

@@ -72,9 +72,9 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </thead>
                                 <tbody class="divide-y divide-gray-200" id="suppliersTableBody">
                                     <?php foreach ($suppliers as $supplier): ?>
-                                        <tr class="hover:bg-gray-50 transition duration-200" data-name="<?php echo strtolower(htmlspecialchars($supplier['id_supplier'] . ' ' . $supplier['nama_supplier'] . ' ' . $supplier['alamat'] . ' ' . $supplier['no_telpon'])); ?>">
-                                            <td data-label="ID" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($supplier['id_supplier']); ?></td>
-                                            <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></td>
+                                        <tr class="hover:bg-gray-50 transition duration-200 supplier-row" data-name="<?php echo strtolower(htmlspecialchars($supplier['id_supplier'] . ' ' . $supplier['nama_supplier'] . ' ' . $supplier['alamat'] . ' ' . $supplier['no_telpon'])); ?>">
+                                            <td data-label="ID Supplier" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($supplier['id_supplier']); ?></td>
+                                            <td data-label="Nama Supplier" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></td>
                                             <td data-label="Alamat" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($supplier['alamat']); ?></td>
                                             <td data-label="No. Telpon" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['no_telpon']); ?></td>
                                         </tr>
@@ -100,10 +100,9 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
     document.getElementById('searchInput').addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
         const tableRows = document.querySelectorAll('#suppliersTableBody .supplier-row');
-        
         tableRows.forEach(row => {
             const name = row.dataset.name.toLowerCase();
-            row.style.display = name.includes(searchTerm) ? '' : 'none';
+            row.style.display = !searchTerm || name.includes(searchTerm) ? '' : 'none';
         });
     });
 </script>
