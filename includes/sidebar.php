@@ -1,4 +1,4 @@
-<div class="flex h-full flex-col lg:w-64 p-4">
+<div class="flex h-full flex-col lg:w-64 p-4 ">
     <div class="flex h-16 shrink-0 items-center">
         <a href="dashboard.php" class="flex items-center gap-x-3">
             <img class="h-10 w-auto" src="../assets/images/logo.png" alt="Logo Perusahaan">

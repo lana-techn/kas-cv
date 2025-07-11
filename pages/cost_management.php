@@ -16,7 +16,7 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         $pdo->beginTransaction();
-        
+
         if ($_POST['action'] === 'add') {
             // Validasi input untuk penambahan biaya
             if (empty($_POST['nama_biaya']) || empty($_POST['tgl_biaya']) || !isset($_POST['total'])) {
@@ -25,18 +25,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (!is_numeric($_POST['total']) || $_POST['total'] <= 0) {
                 throw new Exception('Total biaya harus berupa angka positif.');
             }
-            
+
             // Proses penambahan biaya
             $id_biaya = $_POST['id_biaya'] ?: generateId('BYA');
             $stmt = $pdo->prepare("INSERT INTO biaya (id_biaya, nama_biaya, tgl_biaya, total) VALUES (?, ?, ?, ?)");
             $stmt->execute([$id_biaya, $_POST['nama_biaya'], $_POST['tgl_biaya'], $_POST['total']]);
-            
+
             // Catat di pengeluaran kas
             $stmt = $pdo->prepare("INSERT INTO pengeluaran_kas (id_pengeluaran_kas, id_biaya, tgl_pengeluaran_kas, uraian, total) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([generateId('PKS'), $id_biaya, $_POST['tgl_biaya'], 'Biaya Operasional: ' . $_POST['nama_biaya'], $_POST['total']]);
-            
-            $message = 'Biaya berhasil ditambahkan dan dicatat di kas keluar.';
 
+            $message = 'Biaya berhasil ditambahkan dan dicatat di kas keluar.';
         } elseif ($_POST['action'] === 'edit') {
             // Validasi input untuk edit biaya
             if (empty($_POST['id_biaya']) || empty($_POST['nama_biaya']) || empty($_POST['tgl_biaya']) || !isset($_POST['total'])) {
@@ -49,26 +48,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Proses update biaya
             $stmt = $pdo->prepare("UPDATE biaya SET nama_biaya = ?, tgl_biaya = ?, total = ? WHERE id_biaya = ?");
             $stmt->execute([$_POST['nama_biaya'], $_POST['tgl_biaya'], $_POST['total'], $_POST['id_biaya']]);
-            
+
             // Update juga di pengeluaran kas
             $stmt = $pdo->prepare("UPDATE pengeluaran_kas SET tgl_pengeluaran_kas = ?, uraian = ?, total = ? WHERE id_biaya = ?");
             $stmt->execute([$_POST['tgl_biaya'], 'Biaya Operasional: ' . $_POST['nama_biaya'], $_POST['total'], $_POST['id_biaya']]);
-            
-            $message = 'Biaya berhasil diupdate.';
 
+            $message = 'Biaya berhasil diupdate.';
         } elseif ($_POST['action'] === 'delete') {
             // Proses penghapusan biaya
             // Hapus dulu dari pengeluaran kas (karena ada foreign key)
             $stmt = $pdo->prepare("DELETE FROM pengeluaran_kas WHERE id_biaya = ?");
             $stmt->execute([$_POST['id_biaya']]);
-            
+
             // Hapus dari tabel biaya
             $stmt = $pdo->prepare("DELETE FROM biaya WHERE id_biaya = ?");
             $stmt->execute([$_POST['id_biaya']]);
-            
+
             $message = 'Biaya berhasil dihapus.';
         }
-        
+
         $pdo->commit();
     } catch (Exception $e) {
         $pdo->rollBack();
@@ -77,8 +75,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Ambil semua data biaya
-$stmt = $pdo->query("SELECT * FROM biaya ORDER BY tgl_biaya DESC");
-$costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// --- Pagination and search logic ---
+$perPage = 10;
+$page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0 ? (int)$_GET['page'] : 1;
+$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+// Count total items (with search)
+if ($search_query !== '') {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM biaya WHERE id_biaya LIKE ? OR nama_biaya LIKE ?");
+    $stmt->execute(['%' . $search_query . '%', '%' . $search_query . '%']);
+    $totalItems = $stmt->fetchColumn();
+} else {
+    $stmt = $pdo->query("SELECT COUNT(*) FROM biaya");
+    $totalItems = $stmt->fetchColumn();
+}
+$totalPages = max(1, ceil($totalItems / $perPage));
+$offset = ($page - 1) * $perPage;
+
+// Fetch paginated data (with search)
+if ($search_query !== '') {
+    $stmt = $pdo->prepare("SELECT * FROM biaya WHERE id_biaya LIKE ? OR nama_biaya LIKE ? ORDER BY tgl_biaya DESC LIMIT $perPage OFFSET $offset");
+    $stmt->execute(['%' . $search_query . '%', '%' . $search_query . '%']);
+    $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    $stmt = $pdo->prepare("SELECT * FROM biaya ORDER BY tgl_biaya DESC LIMIT $perPage OFFSET $offset");
+    $stmt->execute();
+    $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 
 <head>
@@ -139,7 +162,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200">
-                                    <?php 
+                                    <?php
                                     $i = 1;
                                     foreach ($costs as $cost): ?>
                                         <tr class="hover:bg-gray-50 transition duration-200">
@@ -167,12 +190,12 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <!-- Pagination -->
                         <div class="flex justify-end mt-2 p-2">
-                        <div class="flex items-center space-x-2 text-sm">
-                            <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo max(1, $page - 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page <= 1 ? 'opacity-50 cursor-not-allowed' : ''; ?>">Prev</a>
-                            <span class="px-2"><?php echo $page; ?> / <?php echo $totalPages; ?></span>
-                            <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo min($totalPages, $page + 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page >= $totalPages ? 'opacity-50 cursor-not-allowed' : ''; ?>">Next</a>
+                            <div class="flex items-center space-x-2 text-sm">
+                                <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo max(1, $page - 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page <= 1 ? 'opacity-50 cursor-not-allowed' : ''; ?>">Prev</a>
+                                <span class="px-2"><?php echo $page; ?> / <?php echo $totalPages; ?></span>
+                                <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo min($totalPages, $page + 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page >= $totalPages ? 'opacity-50 cursor-not-allowed' : ''; ?>">Next</a>
+                            </div>
                         </div>
-                    </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -252,7 +275,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     `;
         showModal('Tambah Biaya Baru', content);
     }
-    
+
     // *** BARU: Fungsi untuk menampilkan form edit biaya ***
     function showEditCostForm(id, nama, tanggal, total) {
         const content = `

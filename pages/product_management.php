@@ -98,9 +98,9 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Barang</h3>
-                            <p class="text-purple-100 mt-1">Total: <?php echo $totalItems; ?> jenis barang</p>
+                            <p class="text-blue-100 mt-1">Total: <?php echo $totalItems; ?> jenis barang</p>
                         </div>
-                        <button onclick="showAddProductForm()" class="add-button bg-white text-purple-600 hover:bg-purple-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                        <button onclick="showAddProductForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                             <i class="fas fa-plus mr-2"></i>Tambah Barang
                         </button>
                     </div>
@@ -108,7 +108,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <div class="p-6">
                     <div class="mb-6 relative">
-                        <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 pr-10" placeholder="Cari nama barang..." value="<?php echo htmlspecialchars($search_query); ?>">
+                        <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10" placeholder="Cari nama barang..." value="<?php echo htmlspecialchars($search_query); ?>">
                         <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                             <i class="fas fa-search"></i>
                         </span>
@@ -203,7 +203,7 @@ function showAddProductForm() {
             <div class="space-y-4">
                 <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Nama Barang</label>
-                    <input type="text" name="nama_barang" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Contoh: Meja Belajar">
+                    <input type="text" name="nama_barang" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Meja Belajar">
                 </div>
                 <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Stok Awal</label>
@@ -213,7 +213,7 @@ function showAddProductForm() {
             </div>
             <div class="flex justify-end space-x-3 mt-8 border-t pt-6">
                 <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">Batal</button>
-                <button type="submit" class="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition duration-200"><i class="fas fa-save mr-2"></i>Simpan Barang</button>
+                <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"><i class="fas fa-save mr-2"></i>Simpan Barang</button>
             </div>
         </form>
     `;
@@ -232,7 +232,7 @@ function showEditProductForm(product) {
                 </div>
                 <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Nama Barang</label>
-                    <input type="text" name="nama_barang" value="${product.nama_barang}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <input type="text" name="nama_barang" value="${product.nama_barang}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Stok Saat Ini</label>
@@ -242,7 +242,7 @@ function showEditProductForm(product) {
             </div>
             <div class="flex justify-end space-x-3 mt-8 border-t pt-6">
                 <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">Batal</button>
-                <button type="submit" class="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition duration-200"><i class="fas fa-save mr-2"></i>Simpan Perubahan</button>
+                <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"><i class="fas fa-save mr-2"></i>Simpan Perubahan</button>
             </div>
         </form>
     `;

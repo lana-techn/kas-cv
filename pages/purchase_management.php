@@ -76,7 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt_kas = $pdo->prepare("INSERT INTO pengeluaran_kas (id_pengeluaran_kas, id_pembelian, tgl_pengeluaran_kas, uraian, total) VALUES (?, ?, ?, ?, ?)");
             $stmt_kas->execute([generateId('PKS'), $id_pembelian, $_POST['tgl_beli'], 'Pembelian Bahan ' . $id_pembelian, $_POST['total_beli']]);
             $message = 'Pembelian berhasil disimpan.';
-
         } elseif ($_POST['action'] === 'edit') {
             $id_pembelian = $_POST['id_pembelian'];
             if (empty($id_pembelian)) throw new Exception("ID Pembelian tidak valid untuk diedit.");
@@ -102,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt_detail->execute([generateId('DBL'), $id_pembelian, $item['kd_bahan'], $item['harga_beli'], $item['qty'], $item['subtotal']]);
                 $pdo->prepare("UPDATE bahan SET stok = stok + ? WHERE kd_bahan = ?")->execute([$item['qty'], $item['kd_bahan']]);
             }
-            
+
             // 5. Update kas
             $pdo->prepare("UPDATE pengeluaran_kas SET tgl_pengeluaran_kas = ?, total = ? WHERE id_pembelian = ?")->execute([$_POST['tgl_beli'], $_POST['total_beli'], $id_pembelian]);
             $message = 'Pembelian berhasil diupdate.';
@@ -115,11 +114,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Pengambilan data untuk ditampilkan
+// Pagination logic
+$perPage = 10;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $perPage;
+
+// Hitung total data
+$stmtCount = $pdo->prepare("SELECT COUNT(*) FROM pembelian p JOIN supplier s ON p.id_supplier = s.id_supplier WHERE p.id_pembelian LIKE :search OR s.nama_supplier LIKE :search");
+$stmtCount->bindValue(':search', '%' . $search_query . '%');
+$stmtCount->execute();
+$totalItems = $stmtCount->fetchColumn();
+$totalPages = ceil($totalItems / $perPage);
+
+// Ambil data dengan limit & offset
 $sql = "SELECT p.*, s.nama_supplier 
         FROM pembelian p 
-        JOIN supplier s ON p.id_supplier = s.id_supplier ORDER BY p.tgl_beli DESC, p.id_pembelian DESC";
+        JOIN supplier s ON p.id_supplier = s.id_supplier 
+        WHERE p.id_pembelian LIKE :search OR s.nama_supplier LIKE :search
+        ORDER BY p.tgl_beli DESC, p.id_pembelian DESC
+        LIMIT :limit OFFSET :offset";
 $stmt = $pdo->prepare($sql);
+$stmt->bindValue(':search', '%' . $search_query . '%');
+$stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $purchases = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -135,20 +152,20 @@ $today = date('Y-m-d');
 <div class="flex min-h-screen ">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
-        
+
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
-                 <div class="flex justify-between items-center card-header">
-                        <div>
-                            <h3 class="text-xl font-semibold text-white">Daftar Pembelian</h3>
-                            <p class="text-blue-100 mt-1">Total: <?php echo count($purchases); ?> transaksi</p>
-                        </div>
-                         <button onclick="showAddPurchaseForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                <div class="flex justify-between items-center card-header">
+                    <div>
+                        <h3 class="text-xl font-semibold text-white">Daftar Pembelian</h3>
+                        <p class="text-blue-100 mt-1">Total: <?php echo count($purchases); ?> transaksi</p>
+                    </div>
+                    <button onclick="showAddPurchaseForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                         <i class="fas fa-plus mr-2"></i>Tambah Data
                     </button>
-                    </div>
+                </div>
             </div>
-            
+
             <div class="p-6">
                 <div class="mb-6 relative">
                     <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10" placeholder="Cari ID pembelian atau nama supplier..." value="<?php echo htmlspecialchars($search_query); ?>">
@@ -172,9 +189,11 @@ $today = date('Y-m-d');
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200" id="purchasesTableBody">
                             <?php if (empty($purchases)): ?>
-                                <tr><td colspan="8" class="text-center p-5 text-gray-500">Tidak ada data pembelian.</td></tr>
+                                <tr>
+                                    <td colspan="8" class="text-center p-5 text-gray-500">Tidak ada data pembelian.</td>
+                                </tr>
                             <?php else: ?>
-                                <?php 
+                                <?php
                                 $i = 1;
                                 foreach ($purchases as $index => $purchase): ?>
                                     <tr class="purchase-row" data-name="<?php echo strtolower(htmlspecialchars($purchase['id_pembelian'] . ' ' . $purchase['nama_supplier'])); ?>">
@@ -216,16 +235,16 @@ $today = date('Y-m-d');
 
 <div id="purchase-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
     <div class="bg-gray-50 rounded-xl shadow-2xl w-full max-w-4xl mx-auto max-h-[90vh] flex flex-col">
-        <form id="purchase-form" method="POST" class="flex flex-col flex-grow">
+        <form id="purchase-form" method="POST" class="flex flex-col flex-grow" onsubmit="return validatePurchaseForm(this)">
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-5 rounded-t-xl flex justify-between items-center">
                 <h3 id="modal-title" class="text-xl font-semibold text-white">Input Data Pembelian</h3>
                 <button type="button" onclick="closeModalPurchase()" class="text-white hover:text-gray-200 text-2xl">×</button>
             </div>
-            
+
             <div class="p-6 overflow-y-auto space-y-6">
                 <input type="hidden" name="action" id="form-action">
                 <input type="hidden" name="id_pembelian" id="form-id-pembelian">
-                
+
                 <div class="bg-white p-5 rounded-lg shadow">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
@@ -248,16 +267,16 @@ $today = date('Y-m-d');
                     <div id="item-list" class="space-y-3"></div>
                 </div>
                 <div class="bg-white p-5 rounded-lg shadow">
-                     <div class="md:w-1/2 md:ml-auto space-y-3">
+                    <div class="md:w-1/2 md:ml-auto space-y-3">
                         <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Total</span><input type="text" id="total_display" readonly class="text-right font-bold text-lg bg-transparent"></div>
                         <input type="hidden" name="total_beli" id="total_beli">
-                         <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Bayar</span><input type="number" name="bayar" id="form-bayar" required class="w-1/2 px-3 py-2 border rounded-lg text-right font-bold" min="0" oninput="updateKembali()"></div>
+                        <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Bayar</span><input type="number" name="bayar" id="form-bayar" required class="w-1/2 px-3 py-2 border rounded-lg text-right font-bold" min="0" oninput="updateKembali()"></div>
                         <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Kembali</span><input type="text" id="kembali_display" readonly class="text-right font-bold text-lg text-green-600 bg-transparent"></div>
                         <input type="hidden" name="kembali" id="kembali">
                     </div>
                 </div>
             </div>
-            
+
             <div class="flex justify-end space-x-4 p-4 bg-gray-100 border-t">
                 <button type="button" onclick="closeModalPurchase()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Batal</button>
                 <button type="submit" id="submit-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Simpan</button>
@@ -267,13 +286,44 @@ $today = date('Y-m-d');
 </div>
 
 <template id="item-template">
-    <div class="item-row grid grid-cols-12 gap-3 items-center p-3 border rounded-lg bg-gray-50">
-        <div class="col-span-12 md:col-span-4"><select name="kd_bahan" required class="w-full p-2 border rounded-md"><?php foreach ($materials as $m): ?><option value="<?php echo $m['kd_bahan']; ?>"><?php echo htmlspecialchars($m['nama_bahan']); ?></option><?php endforeach; ?></select></div>
-        <div class="col-span-6 md:col-span-2"><input type="number" name="harga_beli" required class="w-full p-2 border rounded-md text-right" placeholder="Harga" oninput="updateTotal()"></div>
-        <div class="col-span-6 md:col-span-2"><input type="number" name="qty" required class="w-full p-2 border rounded-md text-right" placeholder="Qty" value="1" oninput="updateTotal()"></div>
-        <div class="col-span-10 md:col-span-3"><input type="text" name="subtotal_display" readonly class="w-full p-2 bg-transparent text-right font-semibold"></div>
-        <div class="col-span-2 md:col-span-1 text-center"><button type="button" class="text-red-500 hover:text-red-700" onclick="removeItem(this)"><i class="fas fa-trash-alt"></i></button></div>
-        <input type="hidden" name="subtotal">
+    <div class="item-row grid grid-cols-12 gap-x-6 gap-y-2 items-center p-3 border-b border-stone-200 last:border-b-0 hover:bg-slate-50 transition-colors duration-200">
+        <div class="col-span-12 md:col-span-4">
+            <label for="kd_bahan_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Bahan</label>
+            <select id="kd_bahan_0" name="items[0][kd_bahan]" required
+                class="w-full bg-transparent p-1 border-0 rounded-md appearance-none focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium">
+                <option value="">Pilih Bahan...</option>
+                <?php foreach ($materials as $m): ?>
+                    <option value="<?php echo htmlspecialchars($m['kd_bahan']); ?>">
+                        <?php echo htmlspecialchars($m['nama_bahan']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-span-6 md:col-span-2">
+            <label for="harga_beli_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Harga</label>
+            <input id="harga_beli_0" type="number" name="items[0][harga_beli]" required
+                class="w-full bg-transparent p-1 border-0 rounded-md text-right focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium"
+                placeholder="0" oninput="updateTotal(this)">
+        </div>
+        <div class="col-span-6 md:col-span-2">
+            <label for="qty_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Jumlah</label>
+            <input id="qty_0" type="number" name="items[0][qty]" required value="1"
+                class="w-full bg-transparent p-1 border-0 rounded-md text-right focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium"
+                placeholder="0" oninput="updateTotal(this)">
+        </div>
+        <div class="col-span-10 md:col-span-3">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Subtotal</label>
+            <input type="text" name="items[0][subtotal_display]" readonly
+                class="w-full bg-transparent p-1 border-0 text-right font-bold text-emerald-700 text-base focus:outline-none focus:ring-0">
+        </div>
+        <div class="col-span-2 md:col-span-1 flex items-center justify-center pt-5">
+            <button type="button"
+                class="w-8 h-8 flex items-center justify-center text-slate-400 bg-transparent rounded-full hover:bg-red-100 hover:text-red-500 transition-colors duration-200"
+                onclick="removeItem(this)" title="Hapus item">
+                <i class="fas fa-trash-alt text-sm"></i>
+            </button>
+        </div>
+        <input type="hidden" name="items[0][subtotal]">
     </div>
 </template>
 
@@ -282,9 +332,15 @@ $today = date('Y-m-d');
     const modal = document.getElementById('purchase-modal');
     const form = document.getElementById('purchase-form');
     const itemList = document.getElementById('item-list');
-    const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
+    const currencyFormatter = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    });
 
-    function closeModalPurchase() { modal.classList.add('hidden'); }
+    function closeModalPurchase() {
+        modal.classList.add('hidden');
+    }
 
     function prepareForm(mode, data = {}) {
         form.reset();
@@ -298,7 +354,7 @@ $today = date('Y-m-d');
             form.tgl_beli.value = data.purchase.tgl_beli;
             form.id_supplier.value = data.purchase.id_supplier;
             form.bayar.value = data.purchase.bayar;
-            
+
             data.items.forEach(itemData => {
                 const itemRow = addItem();
                 itemRow.querySelector('[name$="[kd_bahan]"]').value = itemData.kd_bahan;
@@ -306,10 +362,10 @@ $today = date('Y-m-d');
                 itemRow.querySelector('[name$="[qty]"]').value = itemData.qty;
             });
         } else {
-             form.id_pembelian.value = ''; // Kosongkan ID untuk form tambah
-             addItem();
+            form.id_pembelian.value = ''; // Kosongkan ID untuk form tambah
+            addItem();
         }
-        
+
         updateTotal();
         modal.classList.remove('hidden');
     }
@@ -326,7 +382,7 @@ $today = date('Y-m-d');
         try {
             const response = await fetch(`?action=get_purchase_details&id=${id}`);
             if (!response.ok) throw new Error('Gagal menghubungi server.');
-            
+
             const data = await response.json();
             if (data.success) {
                 prepareForm('edit', data);
@@ -399,11 +455,31 @@ $today = date('Y-m-d');
     document.getElementById('searchInput').addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
         const tableRows = document.querySelectorAll('#purchasesTableBody .purchase-row');
-        
+
         tableRows.forEach(row => {
             const name = row.dataset.name.toLowerCase();
             row.style.display = name.includes(searchTerm) ? '' : 'none';
         });
+    });
+
+    function validatePurchaseForm(form) {
+        const total = parseFloat(document.getElementById('total_beli').value) || 0;
+        const bayar = parseFloat(document.getElementById('form-bayar') ? document.getElementById('form-bayar').value : form.bayar.value) || 0;
+        if (bayar < total) {
+            alert('Jumlah bayar tidak boleh kurang dari total pembelian!');
+            updateTotal();
+            return false;
+        }
+        return true;
+    }
+
+    // Tampilkan alert jika gagal (server-side error)
+    document.addEventListener('DOMContentLoaded', function() {
+        const errorMsg = <?php echo json_encode($error ?? ''); ?>;
+        if (errorMsg) {
+            alert(errorMsg);
+            updateTotal();
+        }
     });
 </script>
 

@@ -104,11 +104,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt_stock = $pdo->prepare("SELECT stok FROM barang WHERE kd_barang = ?");
                 $stmt_stock->execute([$item['kd_barang']]);
                 if ($stmt_stock->fetchColumn() < $item['qty']) throw new Exception("Stok tidak mencukupi saat update.");
-                
+
                 $pdo->prepare("INSERT INTO detail_penjualan (id_detail_jual, id_penjualan, kd_barang, harga_jual, qty, subtotal) VALUES (?, ?, ?, ?, ?, ?)")->execute([generateId('DJL'), $id_penjualan, $item['kd_barang'], $item['harga_jual'], $item['qty'], $item['subtotal']]);
                 $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?")->execute([$item['qty'], $item['kd_barang']]);
             }
-            
+
             // 3. Update kas
             $pdo->prepare("UPDATE penerimaan_kas SET tgl_terima_kas = ?, total = ? WHERE id_penjualan = ?")->execute([$_POST['tgl_jual'], $_POST['total_jual'], $id_penjualan]);
             $message = 'Penjualan berhasil diupdate.';
@@ -126,8 +126,26 @@ if (!isset($_SESSION['temp_sale_id'])) {
     $_SESSION['temp_sale_id'] = generateId('JUL');
 }
 
-// Pengambilan data untuk ditampilkan
-$sales = $pdo->query("SELECT * FROM penjualan ORDER BY tgl_jual DESC, id_penjualan DESC")->fetchAll(PDO::FETCH_ASSOC);
+// Pagination logic
+$perPage = 10;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $perPage;
+
+// Hitung total data
+$stmtCount = $pdo->prepare("SELECT COUNT(*) FROM penjualan WHERE id_penjualan LIKE :search");
+$search_query = $_GET['search'] ?? '';
+$stmtCount->bindValue(':search', '%' . $search_query . '%');
+$stmtCount->execute();
+$totalItems = $stmtCount->fetchColumn();
+$totalPages = ceil($totalItems / $perPage);
+
+// Ambil data dengan limit & offset
+$stmt = $pdo->prepare("SELECT * FROM penjualan WHERE id_penjualan LIKE :search ORDER BY tgl_jual DESC, id_penjualan DESC LIMIT :limit OFFSET :offset");
+$stmt->bindValue(':search', '%' . $search_query . '%');
+$stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
+$sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $products = $pdo->query("SELECT kd_barang, nama_barang, stok FROM barang ORDER BY nama_barang")->fetchAll(PDO::FETCH_ASSOC);
 $today = date('Y-m-d');
 ?>
@@ -136,23 +154,23 @@ $today = date('Y-m-d');
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
-<div class="flex min-h-screen bg-gray-100">
+<div class="flex min-h-screen ">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
-        
+
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
-                 <div class="flex justify-between items-center card-header">
-                        <div>
-                            <h3 class="text-xl font-semibold text-white">Daftar Penjualan</h3>
-                            <p class="text-blue-100 mt-1">Total: <?php echo count($sales); ?> transaksi</p>
-                        </div>
-                         <button onclick="showAddSaleForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                <div class="flex justify-between items-center card-header">
+                    <div>
+                        <h3 class="text-xl font-semibold text-white">Daftar Penjualan</h3>
+                        <p class="text-blue-100 mt-1">Total: <?php echo count($sales); ?> transaksi</p>
+                    </div>
+                    <button onclick="showAddSaleForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                         <i class="fas fa-plus mr-2"></i>Tambah Penjualan
                     </button>
-                    </div>
+                </div>
             </div>
-            
+
             <div class="p-6">
                 <div class="overflow-x-auto">
                     <table class="min-w-full border border-gray-200">
@@ -168,8 +186,10 @@ $today = date('Y-m-d');
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                             <?php if(empty($sales)): ?>
-                                <tr><td colspan="7" class="text-center p-5 text-gray-500">Tidak ada data penjualan.</td></tr>
+                            <?php if (empty($sales)): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center p-5 text-gray-500">Tidak ada data penjualan.</td>
+                                </tr>
                             <?php else: ?>
                                 <?php foreach ($sales as $index => $sale): ?>
                                     <tr class="hover:bg-gray-50">
@@ -206,18 +226,18 @@ $today = date('Y-m-d');
 
 <div id="sale-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
     <div class="bg-gray-50 rounded-xl shadow-2xl w-full max-w-4xl mx-auto max-h-[90vh] flex flex-col">
-        <form id="sale-form" method="POST" class="flex flex-col flex-grow">
+        <form id="sale-form" method="POST" class="flex flex-col flex-grow" onsubmit="return validateSaleForm(this)">
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-5 rounded-t-xl flex justify-between items-center">
                 <h3 id="modal-title" class="text-xl font-semibold text-white">Input Data Penjualan</h3>
                 <button type="button" onclick="closeModalSales()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
             </div>
-            
+
             <div class="p-6 overflow-y-auto space-y-6">
                 <input type="hidden" name="action" id="form-action">
-                
+
                 <div class="bg-white p-5 rounded-lg shadow">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                         <div>
+                        <div>
                             <label class="block text-gray-700 text-sm font-bold mb-2">ID Penjualan</label>
                             <input type="text" name="id_penjualan" id="form-id-penjualan" value="<?php echo htmlspecialchars($_SESSION['temp_sale_id']); ?>" readonly class="w-full px-4 py-2 border rounded-lg bg-gray-200">
                         </div>
@@ -235,16 +255,16 @@ $today = date('Y-m-d');
                     <div id="item-list" class="space-y-3"></div>
                 </div>
                 <div class="bg-white p-5 rounded-lg shadow">
-                     <div class="md:w-1/2 md:ml-auto space-y-3">
+                    <div class="md:w-1/2 md:ml-auto space-y-3">
                         <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Total</span><input type="text" id="total_display" readonly class="text-right font-bold text-lg bg-transparent"></div>
                         <input type="hidden" name="total_jual" id="total_jual">
-                         <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Bayar</span><input type="number" name="bayar" id="bayar" required class="w-1/2 px-3 py-2 border rounded-lg text-right font-bold" min="0" oninput="updateKembali()"></div>
+                        <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Bayar</span><input type="number" name="bayar" id="bayar" required class="w-1/2 px-3 py-2 border rounded-lg text-right font-bold" min="0" oninput="updateKembali()"></div>
                         <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Kembali</span><input type="text" id="kembali_display" readonly class="text-right font-bold text-lg text-green-600 bg-transparent"></div>
                         <input type="hidden" name="kembali" id="kembali">
                     </div>
                 </div>
             </div>
-            
+
             <div class="flex justify-end space-x-4 p-4 bg-gray-100 border-t">
                 <button type="button" onclick="closeModalSales()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Batal</button>
                 <button type="submit" id="submit-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Simpan</button>
@@ -254,14 +274,51 @@ $today = date('Y-m-d');
 </div>
 
 <template id="item-template">
-    <div class="item-row grid grid-cols-12 gap-3 items-center p-3 border rounded-lg bg-gray-50">
-        <div class="col-span-12 md:col-span-4"><select name="kd_barang" required class="w-full p-2 border rounded-md"><?php foreach ($products as $p): ?><option value="<?php echo $p['kd_barang']; ?>" data-stok="<?php echo $p['stok']; ?>"><?php echo htmlspecialchars($p['nama_barang']) . ' (Stok: ' . $p['stok'] . ')'; ?></option><?php endforeach; ?></select></div>
-        <div class="col-span-6 md:col-span-2"><input type="number" name="harga_jual" required class="w-full p-2 border rounded-md text-right" placeholder="Harga" oninput="updateTotal()"></div>
-        <div class="col-span-6 md:col-span-2"><input type="number" name="qty" required class="w-full p-2 border rounded-md text-right" placeholder="Qty" value="1" oninput="updateTotal(); checkStock(this);"></div>
-        <div class="col-span-10 md:col-span-3"><input type="text" name="subtotal_display" readonly class="w-full p-2 bg-transparent text-right font-semibold"></div>
-        <div class="col-span-2 md:col-span-1 text-center"><button type="button" class="text-red-500 hover:text-red-700" onclick="removeItem(this)"><i class="fas fa-trash-alt"></i></button></div>
-        <input type="hidden" name="subtotal">
+    <div class="item-row grid grid-cols-12 gap-x-6 gap-y-2 items-center p-3 border-b border-stone-200 last:border-b-0 hover:bg-slate-50 transition-colors duration-200">
+
+    <div class="col-span-12 md:col-span-4">
+        <label for="kd_barang_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Barang</label>
+        <select id="kd_barang_0" name="items[0][kd_barang]" required
+                class="w-full bg-transparent p-1 border-0 rounded-md appearance-none focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium">
+            <option value="">Pilih Barang...</option>
+            <?php foreach ($products as $p): ?>
+                <option value="<?php echo htmlspecialchars($p['kd_barang']); ?>" data-stok="<?php echo htmlspecialchars($p['stok']); ?>">
+                    <?php echo htmlspecialchars($p['nama_barang']) . ' (Stok: ' . htmlspecialchars($p['stok']) . ')'; ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
     </div>
+
+    <div class="col-span-6 md:col-span-2">
+        <label for="harga_jual_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Harga</label>
+        <input id="harga_jual_0" type="number" name="items[0][harga_jual]" required
+               class="w-full bg-transparent p-1 border-0 rounded-md text-right focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium"
+               placeholder="0" oninput="updateTotal(this)">
+    </div>
+
+    <div class="col-span-6 md:col-span-2">
+        <label for="qty_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Qty</label>
+        <input id="qty_0" type="number" name="items[0][qty]" required value="1"
+               class="w-full bg-transparent p-1 border-0 rounded-md text-right focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium"
+               placeholder="0" oninput="updateTotal(); checkStock(this);">
+    </div>
+
+    <div class="col-span-10 md:col-span-3">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Subtotal</label>
+        <input type="text" name="items[0][subtotal_display]" readonly
+               class="w-full bg-transparent p-1 border-0 text-right font-bold text-emerald-700 text-base focus:outline-none focus:ring-0 cursor-default">
+    </div>
+
+    <div class="col-span-2 md:col-span-1 flex items-center justify-center pt-5">
+        <button type="button"
+                class="w-8 h-8 flex items-center justify-center text-slate-400 bg-transparent rounded-full hover:bg-red-100 hover:text-red-500 transition-colors duration-200"
+                onclick="removeItem(this)" title="Hapus item">
+            <i class="fas fa-trash-alt text-sm"></i>
+        </button>
+    </div>
+
+    <input type="hidden" name="items[0][subtotal]">
+</div>
 </template>
 
 <script>
@@ -269,9 +326,15 @@ $today = date('Y-m-d');
     const modal = document.getElementById('sale-modal');
     const form = document.getElementById('sale-form');
     const itemList = document.getElementById('item-list');
-    const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
+    const currencyFormatter = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    });
 
-    function closeModalSales() { modal.classList.add('hidden'); }
+    function closeModalSales() {
+        modal.classList.add('hidden');
+    }
 
     function prepareSaleForm(mode, data = {}) {
         form.reset();
@@ -284,7 +347,7 @@ $today = date('Y-m-d');
             form.querySelector('[name="id_penjualan"]').value = data.sale.id_penjualan;
             form.querySelector('[name="tgl_jual"]').value = data.sale.tgl_jual;
             form.querySelector('[name="bayar"]').value = data.sale.bayar;
-            
+
             data.items.forEach(itemData => {
                 const itemRow = addItem();
                 itemRow.querySelector('[name$="[kd_barang]"]').value = itemData.kd_barang;
@@ -292,10 +355,10 @@ $today = date('Y-m-d');
                 itemRow.querySelector('[name$="[qty]"]').value = itemData.qty;
             });
         } else {
-             form.querySelector('[name="id_penjualan"]').value = '<?php echo htmlspecialchars($_SESSION['temp_sale_id']); ?>';
-             addItem();
+            form.querySelector('[name="id_penjualan"]').value = '<?php echo htmlspecialchars($_SESSION['temp_sale_id']); ?>';
+            addItem();
         }
-        
+
         updateTotal();
         modal.classList.remove('hidden');
     }
@@ -312,7 +375,7 @@ $today = date('Y-m-d');
         try {
             const response = await fetch(`?action=get_sale_details&id=${id}`);
             if (!response.ok) throw new Error('Gagal menghubungi server.');
-            
+
             const data = await response.json();
             if (data.success) {
                 prepareSaleForm('edit', data);
@@ -349,8 +412,8 @@ $today = date('Y-m-d');
         button.closest('.item-row').remove();
         updateTotal();
     }
-    
-     function checkStock(element) {
+
+    function checkStock(element) {
         const row = element.closest('.item-row');
         const productSelect = row.querySelector('[name*="[kd_barang]"]');
         const qtyInput = row.querySelector('[name*="[qty]"]');
@@ -391,6 +454,26 @@ $today = date('Y-m-d');
         document.getElementById('kembali').value = kembali;
         document.getElementById('kembali_display').value = currencyFormatter.format(kembali);
     }
+
+    function validateSaleForm(form) {
+        const total = parseFloat(document.getElementById('total_jual').value) || 0;
+        const bayar = parseFloat(document.getElementById('bayar') ? document.getElementById('bayar').value : form.bayar.value) || 0;
+        if (bayar < total) {
+            alert('Jumlah bayar tidak boleh kurang dari total penjualan!');
+            updateTotal();
+            return false;
+        }
+        return true;
+    }
+
+    // Tampilkan alert jika gagal (server-side error)
+    document.addEventListener('DOMContentLoaded', function() {
+        const errorMsg = <?php echo json_encode($error ?? ''); ?>;
+        if (errorMsg) {
+            alert(errorMsg);
+            updateTotal();
+        }
+    });
 </script>
 
 <?php require_once '../includes/footer.php'; ?>

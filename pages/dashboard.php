@@ -120,19 +120,52 @@ if ($userLevel === 'admin') {
     $data['totalPengeluaran'] = $totalPembelian + $totalBiaya;
     $data['saldoKas'] = $data['totalPenjualan'] - $data['totalPengeluaran'];
 
-    // --- Data untuk Grafik Pemilik ---
-    $salesData = array_fill(0, 12, 0);
-    $purchasesData = array_fill(0, 12, 0);
-    $stmt_sales = $pdo->query("SELECT MONTH(tgl_jual) as month, SUM(total_jual) as total FROM penjualan GROUP BY MONTH(tgl_jual)");
-    while ($row = $stmt_sales->fetch(PDO::FETCH_ASSOC)) {
-        $salesData[$row['month'] - 1] = (float)$row['total'];
-    }
-    $stmt_purchases = $pdo->query("SELECT MONTH(tgl_beli) as month, SUM(total_beli) as total FROM pembelian GROUP BY MONTH(tgl_beli)");
-    while ($row = $stmt_purchases->fetch(PDO::FETCH_ASSOC)) {
-        $purchasesData[$row['month'] - 1] = (float)$row['total'];
-    }
-    $data['salesChartData'] = json_encode($salesData);
-    $data['purchasesChartData'] = json_encode($purchasesData);
+    // --- PERBAIKAN 1: Logika dan Batasan Tanggal yang Ditingkatkan ---
+date_default_timezone_set('Asia/Jakarta');
+$today = date('Y-m-d'); // Mendapatkan tanggal hari ini untuk batasan
+
+// Nilai default yang lebih dinamis: 30 hari terakhir dari hari ini
+$default_start_date = date('Y-m-d', strtotime('-29 days'));
+$default_end_date = $today;
+
+$report_type = $_POST['report_type'] ?? 'penjualan';
+$start_date = $_POST['start_date'] ?? $default_start_date;
+$end_date = $_POST['end_date'] ?? $default_end_date;
+
+// Validasi di sisi server untuk memastikan tanggal tidak melebihi hari ini
+if ($end_date > $today) {
+    $end_date = $today;
+}
+// Memastikan tanggal mulai tidak lebih besar dari tanggal akhir
+if ($start_date > $end_date) {
+    $start_date = $end_date;
+}
+// --- AKHIR PERBAIKAN 1 ---
+
+// Query untuk ringkasan di bagian atas (TETAP SAMA)
+$stmt_total_penjualan = $pdo->query("SELECT SUM(total_jual) as total FROM penjualan");
+$total_penjualan = $stmt_total_penjualan->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+$stmt_total_pembelian = $pdo->query("SELECT SUM(total_beli) as total FROM pembelian");
+$total_pembelian = $stmt_total_pembelian->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+$stmt_total_biaya = $pdo->query("SELECT SUM(total) as total FROM biaya");
+$total_biaya = $stmt_total_biaya->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+$saldo_kas = $total_penjualan - ($total_pembelian + $total_biaya);
+
+// Get filtered data for charts (TETAP SAMA)
+$stmt_filtered_penjualan = $pdo->prepare("SELECT SUM(total_jual) as total FROM penjualan WHERE tgl_jual BETWEEN ? AND ?");
+$stmt_filtered_penjualan->execute([$start_date, $end_date]);
+$filtered_penjualan = $stmt_filtered_penjualan->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+$stmt_filtered_pembelian = $pdo->prepare("SELECT SUM(total_beli) as total FROM pembelian WHERE tgl_beli BETWEEN ? AND ?");
+$stmt_filtered_pembelian->execute([$start_date, $end_date]);
+$filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+    
+
+
 }
 ?>
 <div class="flex min-h-screen">
@@ -291,12 +324,12 @@ if ($userLevel === 'admin') {
                     </div>
                 </div>
             <?php elseif ($userLevel === 'pemilik'): ?>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-lg shadow">
                         <p class="text-sm font-medium text-gray-600">Total Penjualan</p>
                         <p class="text-2xl font-semibold text-gray-900"><?php echo formatCurrency($data['totalPenjualan']); ?></p>
                     </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
+                                        <div class="bg-white p-6 rounded-lg shadow">
                         <p class="text-sm font-medium text-gray-600">Total Pengeluaran</p>
                         <p class="text-2xl font-semibold text-gray-900"><?php echo formatCurrency($data['totalPengeluaran']); ?></p>
                     </div>
@@ -309,10 +342,24 @@ if ($userLevel === 'admin') {
                         <p class="text-2xl font-semibold text-gray-900"><?php echo $data['totalBarang']; ?></p>
                     </div>
                 </div>
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="text-lg font-semibold mb-4">Grafik Keuangan</h3>
-                    <div style="height:400px;"><canvas id="salesChart"></canvas></div>
+               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow-lg p-6 card">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-chart-pie mr-2 text-blue-500"></i>Perbandingan Penjualan vs Pembelian
+                    </h3>
+                    <div class="relative">
+                        <canvas id="comparisonChart" width="400" height="200"></canvas>
+                    </div>
                 </div>
+                <div class="bg-white rounded-lg shadow-lg p-6 card">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-chart-line mr-2 text-green-500"></i>Trend Penjualan (7 Hari Terakhir)
+                    </h3>
+                    <div class="relative">
+                        <canvas id="trendChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
             <?php endif; ?>
 
         </div>
@@ -321,26 +368,134 @@ if ($userLevel === 'admin') {
 <?php if ($userLevel === 'pemilik'): ?>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                datasets: [{
-                    label: 'Penjualan',
-                    data: <?php echo $data['salesChartData']; ?>,
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                }, {
-                    label: 'Pembelian',
-                    data: <?php echo $data['purchasesChartData']; ?>,
-                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
+    document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        setTimeout(() => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'all 0.6s ease';
+            
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100);
+        }, index * 200);
+    });
+});
+
+const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+new Chart(comparisonCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Penjualan', 'Pembelian'],
+        datasets: [{
+            data: [<?php echo $total_penjualan; ?>, <?php echo $total_pembelian; ?>],
+            backgroundColor: ['rgba(34, 197, 94, 0.8)','rgba(239, 68, 68, 0.8)'],
+            borderColor: ['rgba(34, 197, 94, 1)','rgba(239, 68, 68, 1)'],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed);
+                        return label + ': ' + value;
+                    }
+                }
             }
-        });
+        },
+        animation: { animateRotate: true, duration: 2000 }
+    }
+});
+
+<?php
+$sales_trend = [];
+$labels_trend = [];
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(total_jual), 0) as total FROM penjualan WHERE DATE(tgl_jual) = ?");
+    $stmt->execute([$date]);
+    $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $sales_trend[] = $total;
+    $labels_trend[] = date('d M', strtotime($date));
+}
+?>
+
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: <?php echo json_encode($labels_trend); ?>,
+        datasets: [{
+            label: 'Penjualan',
+            data: <?php echo json_encode($sales_trend); ?>,
+            borderColor: 'rgba(59, 130, 246, 1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 6,
+            pointHoverRadius: 8
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const value = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
+                        return 'Penjualan: ' + value;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+                    }
+                },
+                grid: { color: 'rgba(0, 0, 0, 0.1)' }
+            },
+            x: { grid: { display: false } }
+        },
+        animation: { duration: 2000, easing: 'easeInOutQuart' }
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => { row.classList.add('table-row'); });
+});
+
+const reportForm = document.querySelector('form');
+if (reportForm) {
+    reportForm.addEventListener('submit', function() {
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = '<div class="loading"></div> Loading...';
+        submitButton.disabled = true;
+        setTimeout(() => {
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
+        }, 3000);
+    });
+}
     </script>
 <?php endif; ?>
 
