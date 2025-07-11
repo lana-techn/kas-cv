@@ -182,9 +182,11 @@ $today = date('Y-m-d');
                              <?php if(empty($sales)): ?>
                                 <tr><td colspan="7" class="text-center p-5 text-gray-500">Tidak ada data penjualan.</td></tr>
                             <?php else: ?>
-                                <?php foreach ($sales as $index => $sale): ?>
+                                <?php 
+                                $i = 1;
+                                foreach ($sales as $index => $sale): ?>
                                     <tr class="sales-row" data-name="<?php echo strtolower(htmlspecialchars($sale['id_penjualan'])); ?>">
-                                        <td class="px-6 py-4 text-center text-sm text-gray-500"><?php echo $index + 1; ?></td>
+                                        <td class="px-6 py-4 text-center text-sm text-gray-500"><?php echo $i++; ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?php echo htmlspecialchars($sale['id_penjualan']); ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?php echo date('d M Y', strtotime($sale['tgl_jual'])); ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-right font-semibold"><?php echo formatCurrency($sale['total_jual']); ?></td>

@@ -72,14 +72,18 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <table class="min-w-full table-auto border-collapse border border-gray-300">
                             <thead>
                                 <tr class="bg-gray-50">
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">No</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Kode Barang</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Barang</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Stok</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200" id="productsTableBody">
-                                <?php foreach ($products as $product): ?>
+                                <?php 
+                                $i = 1;
+                                foreach ($products as $product): ?>
                                     <tr class="product-row border-b border-gray-200" data-name="<?php echo strtolower(htmlspecialchars($product['kd_barang'] . ' ' . $product['nama_barang'])); ?>">
+                                        <td data-label="No." class="px-6 py-4 text-sm text-gray-900"><?php echo $i++; ?></td>
                                         <td class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($product['kd_barang']); ?></td>
                                         <td class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($product['nama_barang']); ?></td>
                                         <td class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($product['stok']); ?></td>

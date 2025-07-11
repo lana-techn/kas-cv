@@ -64,6 +64,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <table class="min-w-full responsive-table border border-gray-300">
                                 <thead>
                                     <tr class="bg-gray-50">
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">No</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Kode Bahan</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Bahan</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Stok</th>
@@ -71,8 +72,11 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200" id="materialsTableBody">
-                                    <?php foreach ($materials as $material): ?>
+                                    <?php 
+                                    $i = 1;
+                                    foreach ($materials as $material): ?>
                                         <tr class="hover:bg-gray-50 transition duration-200 material-row" data-name="<?php echo strtolower(htmlspecialchars($material['kd_bahan'] . ' ' . $material['nama_bahan'])); ?>">
+                                            <td data-label="No." class="px-6 py-4 text-sm text-gray-900"><?php echo $i++; ?></td>
                                             <td data-label="Kode Bahan" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($material['kd_bahan']); ?></td>
                                             <td data-label="Nama Bahan" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($material['nama_bahan']); ?></td>
                                             <td data-label="Stok" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($material['stok']); ?></td>
