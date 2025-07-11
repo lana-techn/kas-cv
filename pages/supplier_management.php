@@ -18,24 +18,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (empty($_POST['nama_supplier']) || empty($_POST['alamat']) || empty($_POST['no_telpon'])) {
                 throw new Exception('Semua field harus diisi');
             }
-            
             $phone = trim($_POST['no_telpon']);
             if (!preg_match('/^(\+?[0-9\s\-()]{8,15})$/', $phone)) {
                 throw new Exception('Format nomor telepon tidak valid. Contoh: +6281234567890 atau 081234567890');
             }
-            
             $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
             if (strlen($cleanPhone) < 8 || strlen($cleanPhone) > 15) {
                 throw new Exception('Nomor telepon harus memiliki 8-15 digit angka');
             }
-            
-            // Cek duplikasi nomor telepon
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM supplier WHERE no_telpon = ?");
             $stmt->execute([$phone]);
             if ($stmt->fetchColumn() > 0) {
                 throw new Exception('Nomor telepon sudah digunakan oleh supplier lain');
             }
-            
             $id_supplier = $_POST['id_supplier'] ?: generateId('SUP');
             $stmt = $pdo->prepare("INSERT INTO supplier (id_supplier, nama_supplier, alamat, no_telpon) VALUES (?, ?, ?, ?)");
             $stmt->execute([$id_supplier, $_POST['nama_supplier'], $_POST['alamat'], $phone]);
@@ -44,24 +39,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (empty($_POST['nama_supplier']) || empty($_POST['alamat']) || empty($_POST['no_telpon'])) {
                 throw new Exception('Semua field harus diisi');
             }
-            
             $phone = trim($_POST['no_telpon']);
             if (!preg_match('/^(\+?[0-9\s\-()]{8,15})$/', $phone)) {
                 throw new Exception('Format nomor telepon tidak valid. Contoh: +6281234567890 atau 081234567890');
             }
-            
             $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
             if (strlen($cleanPhone) < 8 || strlen($cleanPhone) > 15) {
                 throw new Exception('Nomor telepon harus memiliki 8-15 digit angka');
             }
-            
-            // Cek duplikasi nomor telepon, kecuali untuk supplier yang sedang diedit
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM supplier WHERE no_telpon = ? AND id_supplier != ?");
             $stmt->execute([$phone, $_POST['id_supplier']]);
             if ($stmt->fetchColumn() > 0) {
                 throw new Exception('Nomor telepon sudah digunakan oleh supplier lain');
             }
-            
             $stmt = $pdo->prepare("UPDATE supplier SET nama_supplier = ?, alamat = ?, no_telpon = ? WHERE id_supplier = ?");
             $stmt->execute([$_POST['nama_supplier'], $_POST['alamat'], $phone, $_POST['id_supplier']]);
             $message = 'Supplier berhasil diupdate';
@@ -75,9 +65,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Mengambil semua data supplier tanpa filter pencarian
-$sql = "SELECT * FROM supplier ORDER BY nama_supplier";
-$stmt = $pdo->prepare($sql);
+// Pagination logic
+$perPage = 10;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $perPage;
+
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM supplier WHERE id_supplier LIKE :search OR nama_supplier LIKE :search OR alamat LIKE :search OR no_telpon LIKE :search");
+$stmt->bindValue(':search', '%' . $search_query . '%');
+$stmt->execute();
+$totalItems = $stmt->fetchColumn();
+$totalPages = ceil($totalItems / $perPage);
+
+$stmt = $pdo->prepare("SELECT * FROM supplier WHERE id_supplier LIKE :search OR nama_supplier LIKE :search OR alamat LIKE :search OR no_telpon LIKE :search ORDER BY nama_supplier LIMIT :limit OFFSET :offset");
+$stmt->bindValue(':search', '%' . $search_query . '%');
+$stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -94,7 +96,6 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
             </div>
         <?php endif; ?>
-        
         <?php if ($error): ?>
             <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification">
                 <div class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span><?php echo htmlspecialchars($error); ?></span></div>
@@ -112,7 +113,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Supplier</h3>
-                            <p class="text-blue-100 mt-1">Total: <?php echo count($suppliers); ?> supplier</p>
+                            <p class="text-blue-100 mt-1">Total: <?php echo $totalItems; ?> supplier</p>
                         </div>
                         <button onclick="showAddSupplierForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                             <i class="fas fa-plus mr-2"></i>Tambah Supplier
@@ -122,7 +123,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 <div class="p-6">
                     <div class="mb-6 relative">
-                        <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10" placeholder="Cari nama supplier..." value="<?php echo htmlspecialchars($search_query); ?>">
+                        <input type="text" id="searchInput" name="search" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10" placeholder="Cari ID, nama, alamat, atau no. telpon..." value="<?php echo htmlspecialchars($search_query); ?>">
                         <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                             <i class="fas fa-search"></i>
                         </span>
@@ -135,7 +136,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full responsive-table" id="suppliersTable">
+                            <table class="min-w-full responsive-table border border-gray-200" id="suppliersTable">
                                 <thead>
                                     <tr class="border-b border-gray-200">
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Supplier</th>
@@ -147,7 +148,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </thead>
                                 <tbody id="suppliersTableBody" class="divide-y divide-gray-200">
                                     <?php foreach ($suppliers as $supplier): ?>
-                                        <tr class="supplier-row" data-name="<?php echo strtolower(htmlspecialchars($supplier['nama_supplier'])); ?>">
+                                        <tr class="supplier-row" data-name="<?php echo strtolower(htmlspecialchars($supplier['id_supplier'] . ' ' . $supplier['nama_supplier'] . ' ' . $supplier['alamat'] . ' ' . $supplier['no_telpon'])); ?>">
                                             <td data-label="ID" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($supplier['id_supplier']); ?></td>
                                             <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></td>
                                             <td data-label="Alamat" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($supplier['alamat']); ?></td>
@@ -170,6 +171,14 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </table>
                         </div>
                     <?php endif; ?>
+                    <!-- Pagination -->
+                    <div class="flex justify-end mt-2 p-2">
+                        <div class="flex items-center space-x-2 text-sm">
+                            <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo max(1, $page - 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page <= 1 ? 'opacity-50 cursor-not-allowed' : ''; ?>">Prev</a>
+                            <span class="px-2"><?php echo $page; ?> / <?php echo $totalPages; ?></span>
+                            <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo min($totalPages, $page + 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page >= $totalPages ? 'opacity-50 cursor-not-allowed' : ''; ?>">Next</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -332,7 +341,6 @@ function validateForm(form) {
     return true;
 }
 
-// Search functionality
 document.getElementById('searchInput').addEventListener('input', function() {
     const searchTerm = this.value.toLowerCase();
     const tableRows = document.querySelectorAll('#suppliersTableBody .supplier-row');
@@ -343,7 +351,6 @@ document.getElementById('searchInput').addEventListener('input', function() {
     });
 });
 
-// Menutup notifikasi setelah beberapa detik
 document.addEventListener('DOMContentLoaded', (event) => {
     const notifications = document.querySelectorAll('.notification');
     notifications.forEach(notification => {
