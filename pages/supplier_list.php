@@ -64,6 +64,7 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <table class="min-w-full responsive-table border border-gray-300">
                                 <thead>
                                     <tr class="bg-gray-50">
+                                        <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">No.</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Supplier</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Supplier</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Alamat</th>
@@ -71,8 +72,11 @@ $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200" id="suppliersTableBody">
-                                    <?php foreach ($suppliers as $supplier): ?>
+                                    <?php 
+                                    $i = 1;
+                                    foreach ($suppliers as $supplier): ?>
                                         <tr class="hover:bg-gray-50 transition duration-200 supplier-row" data-name="<?php echo strtolower(htmlspecialchars($supplier['id_supplier'] . ' ' . $supplier['nama_supplier'] . ' ' . $supplier['alamat'] . ' ' . $supplier['no_telpon'])); ?>">
+                                            <td data-label="No." class="px-6 py-4 text-center text-sm text-gray-500"><?php echo $i++; ?></td>
                                             <td data-label="ID Supplier" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($supplier['id_supplier']); ?></td>
                                             <td data-label="Nama Supplier" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($supplier['nama_supplier']); ?></td>
                                             <td data-label="Alamat" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($supplier['alamat']); ?></td>
