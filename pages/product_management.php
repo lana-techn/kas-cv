@@ -86,7 +86,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
 
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Barang</h3>

@@ -35,12 +35,11 @@ if ($start_date > $end_date) $start_date = $end_date;
     <main class="flex-1 p-6">
         <div id="reports" class="section active">
             <div class="mb-6">
-                <h2 class="text-3xl font-bold text-gray-800">Laporan & Analitik</h2>
-                <p class="text-gray-600 mt-2">Ringkasan, grafik, dan laporan periodik keuangan perusahaan.</p>
+                <h2 class="text-3xl font-bold text-gray-800">Laporan Pengelolaan Kas Perusahaan</h2>
             </div>
 
             <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-                <h3 class="text-xl font-semibold mb-4">Filter Laporan Periodik</h3>
+                <h3 class="text-xl font-semibold mb-4">Filter Laporan </h3>
                 <form method="POST" action="reports.php" class="flex flex-col md:flex-row md:items-end gap-4 bg-white p-6 rounded-xl shadow-md">
                     <div class="lg:col-span-2 w-full">
                         <label class="block text-sm font-semibold text-gray-800 mb-1">Jenis Laporan</label>
@@ -72,7 +71,7 @@ if ($start_date > $end_date) $start_date = $end_date;
 
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4">
-                    <h3 class="text-xl font-semibold">Hasil: Laporan <?php echo ucwords(str_replace('_', ' ', $report_type)); ?></h3>
+                    <h3 class="text-xl font-semibold">Laporan <?php echo ucwords(str_replace('_', ' ', $report_type)); ?></h3>
                     <div class="flex justify-between gap-4 flex-wrap">
                         <a href="../utils/export_laporan.php?type=<?php echo $report_type; ?>&start=<?php echo $start_date; ?>&end=<?php echo $end_date; ?>" class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-center">
                             <i class="fas fa-file-excel mr-2"></i>Ekspor

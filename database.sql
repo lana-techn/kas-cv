@@ -2,7 +2,7 @@
 CREATE DATABASE IF NOT EXISTS karya_wahana_sentosa;
 USE karya_wahana_sentosa;
 
--- Table User
+                                                                                                                                                                            -- Table User
 CREATE TABLE user (
     id_user VARCHAR(25) PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
@@ -30,7 +30,8 @@ CREATE TABLE `supplier` (
   `id_supplier` varchar(25) NOT NULL,
   `nama_supplier` varchar(200) NOT NULL,
   `alamat` varchar(200) NOT NULL,
-  `no_telpon` varchar(15) NOT NULL
+  `no_telpon` varchar(15) NOT NULL,
+  PRIMARY KEY (`id_supplier`)
 );
 
 -- Table Biaya

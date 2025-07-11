@@ -150,7 +150,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
 
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="bg-gradient-to-r from-indigo-500 to-purple-500 p-6">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
                     <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Produksi</h3>
@@ -268,7 +268,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div>
                             <label class="block text-gray-700 text-sm font-bold mb-2">Produk Jadi</label>
                             <select name="kd_barang" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
-                                <option value="">Pilih Produk</option>
+                                <option value="">Pilih Barang Jadi</option>
                                 <?php foreach ($products as $product): ?>
                                     <option value="<?php echo $product['kd_barang']; ?>"><?php echo htmlspecialchars($product['nama_barang']); ?></option>
                                 <?php endforeach; ?>
