@@ -116,6 +116,7 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <table class="min-w-full responsive-table">
                             <thead>
                                 <tr class="border-b border-gray-200">
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">No</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID User</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Username</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Level</th>
@@ -123,8 +124,11 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200">
-                                <?php foreach ($users as $user): ?>
+                                <?php 
+                                $i = 1;
+                                foreach ($users as $user): ?>
                                     <tr class="hover:bg-gray-50 transition duration-200">
+                                        <td data-label="No." class="px-6 py-4 text-sm text-gray-900"><?php echo $i++; ?></td>
                                         <td data-label="ID User" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($user['id_user']); ?></td>
                                         <td data-label="Username" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($user['username']); ?></td>
                                         <td data-label="Level" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($user['level']); ?></td>
