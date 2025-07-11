@@ -130,6 +130,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <table class="min-w-full responsive-table border border-gray-200">
                                 <thead>
                                     <tr class="border-b border-gray-200">
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">No</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Biaya</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Biaya</th>
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Tanggal</th>
@@ -138,8 +139,11 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200">
-                                    <?php foreach ($costs as $cost): ?>
+                                    <?php 
+                                    $i = 1;
+                                    foreach ($costs as $cost): ?>
                                         <tr class="hover:bg-gray-50 transition duration-200">
+                                            <td data-label="No." class="px-6 py-4 text-sm text-gray-900"><?php echo $i++; ?></td>
                                             <td data-label="ID" class="px-6 py-4 text-sm font-medium text-gray-900"><?php echo htmlspecialchars($cost['id_biaya']); ?></td>
                                             <td data-label="Nama Biaya" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($cost['nama_biaya']); ?></td>
                                             <td data-label="Tanggal" class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars(date('d M Y', strtotime($cost['tgl_biaya']))); ?></td>
