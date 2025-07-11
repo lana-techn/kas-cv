@@ -166,7 +166,7 @@ $today = date('Y-m-d');
                     </span>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full">
+                    <table class="min-w-full border border-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No.</th>
@@ -201,6 +201,14 @@ $today = date('Y-m-d');
                             <?php endif; ?>
                         </tbody>
                     </table>
+                </div>
+                <!-- Pagination -->
+                <div class="flex justify-end mt-2 p-2">
+                    <div class="flex items-center space-x-2 text-sm">
+                        <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo max(1, $page - 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page <= 1 ? 'opacity-50 cursor-not-allowed' : ''; ?>">Prev</a>
+                        <span class="px-2"><?php echo $page; ?> / <?php echo $totalPages; ?></span>
+                        <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo min($totalPages, $page + 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page >= $totalPages ? 'opacity-50 cursor-not-allowed' : ''; ?>">Next</a>
+                    </div>
                 </div>
             </div>
         </div>
