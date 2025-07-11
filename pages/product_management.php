@@ -12,7 +12,6 @@ $message = '';
 $error = '';
 $search_query = $_GET['search'] ?? '';
 
-// Handle form actions (add, edit, delete) remains unchanged
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         if ($_POST['action'] === 'add') {
@@ -35,15 +34,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt_check_prod = $pdo->prepare("SELECT COUNT(*) FROM produksi WHERE kd_barang = ?");
             $stmt_check_prod->execute([$kd_barang]);
             $in_production = $stmt_check_prod->fetchColumn();
-
             $stmt_check_sale = $pdo->prepare("SELECT COUNT(*) FROM detail_penjualan WHERE kd_barang = ?");
             $stmt_check_sale->execute([$kd_barang]);
             $in_sales = $stmt_check_sale->fetchColumn();
-
             if ($in_production > 0 || $in_sales > 0) {
                 throw new Exception('Tidak dapat menghapus barang karena sudah digunakan dalam data produksi atau penjualan.');
             }
-
             $stmt = $pdo->prepare("DELETE FROM barang WHERE kd_barang = ?");
             $stmt->execute([$kd_barang]);
             $message = 'Barang berhasil dihapus.';
@@ -53,9 +49,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Fetch all products without search filter
-$sql = "SELECT kd_barang, nama_barang, stok FROM barang ORDER BY nama_barang ASC";
+// Pagination logic
+$perPage = 10;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $perPage;
+
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM barang WHERE nama_barang LIKE :search");
+$stmt->bindValue(':search', '%' . $search_query . '%');
+$stmt->execute();
+$totalItems = $stmt->fetchColumn();
+$totalPages = ceil($totalItems / $perPage);
+
+$sql = "SELECT kd_barang, nama_barang, stok FROM barang WHERE nama_barang LIKE :search ORDER BY nama_barang ASC LIMIT :limit OFFSET :offset";
 $stmt = $pdo->prepare($sql);
+$stmt->bindValue(':search', '%' . $search_query . '%');
+$stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -72,7 +81,6 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i><span><?php echo htmlspecialchars($message); ?></span></div>
             </div>
         <?php endif; ?>
-
         <?php if ($error): ?>
             <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg notification">
                 <div class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span><?php echo htmlspecialchars($error); ?></span></div>
@@ -90,7 +98,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Barang</h3>
-                            <p class="text-purple-100 mt-1">Total: <?php echo count($products); ?> jenis barang</p>
+                            <p class="text-purple-100 mt-1">Total: <?php echo $totalItems; ?> jenis barang</p>
                         </div>
                         <button onclick="showAddProductForm()" class="add-button bg-white text-purple-600 hover:bg-purple-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                             <i class="fas fa-plus mr-2"></i>Tambah Barang
@@ -106,7 +114,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </span>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full responsive-table" id="productsTable">
+                        <table class="min-w-full responsive-table border border-gray-200" id="productsTable">
                             <thead>
                                 <tr>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Kode Barang</th>
@@ -147,6 +155,14 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </tbody>
                         </table>
                     </div>
+                    <!-- Pagination -->
+                    <div class="flex justify-end mt-2 p-2">
+                        <div class="flex items-center space-x-2 text-sm">
+                            <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo max(1, $page - 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page <= 1 ? 'opacity-50 cursor-not-allowed' : ''; ?>">Prev</a>
+                            <span class="px-2"><?php echo $page; ?> / <?php echo $totalPages; ?></span>
+                            <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo min($totalPages, $page + 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page >= $totalPages ? 'opacity-50 cursor-not-allowed' : ''; ?>">Next</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -168,20 +184,20 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <script>
-    function showModal(title, content) {
-        document.getElementById('modalTitle').innerHTML = title;
-        document.getElementById('modalContent').innerHTML = content;
-        document.getElementById('modal').classList.remove('hidden');
-        document.getElementById('modal').classList.add('flex');
-    }
+function showModal(title, content) {
+    document.getElementById('modalTitle').innerHTML = title;
+    document.getElementById('modalContent').innerHTML = content;
+    document.getElementById('modal').classList.remove('hidden');
+    document.getElementById('modal').classList.add('flex');
+}
 
-    function closeModal() {
-        document.getElementById('modal').classList.add('hidden');
-        document.getElementById('modal').classList.remove('flex');
-    }
+function closeModal() {
+    document.getElementById('modal').classList.add('hidden');
+    document.getElementById('modal').classList.remove('flex');
+}
 
-    function showAddProductForm() {
-        const content = `
+function showAddProductForm() {
+    const content = `
         <form method="POST">
             <input type="hidden" name="action" value="add">
             <div class="space-y-4">
@@ -201,16 +217,16 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </form>
     `;
-        showModal('Tambah Barang Baru', content);
-    }
+    showModal('Tambah Barang Baru', content);
+}
 
-    function showEditProductForm(product) {
-        const content = `
+function showEditProductForm(product) {
+    const content = `
         <form method="POST">
             <input type="hidden" name="action" value="edit">
             <input type="hidden" name="kd_barang" value="${product.kd_barang}">
             <div class="space-y-4">
-                 <div>
+                <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Kode Barang</label>
                     <input type="text" value="${product.kd_barang}" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
                 </div>
@@ -221,7 +237,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Stok Saat Ini</label>
                     <input type="number" value="${product.stok}" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
-                     <p class="text-xs text-gray-500 mt-1">Stok tidak dapat diubah secara manual dari halaman ini.</p>
+                    <p class="text-xs text-gray-500 mt-1">Stok tidak dapat diubah secara manual dari halaman ini.</p>
                 </div>
             </div>
             <div class="flex justify-end space-x-3 mt-8 border-t pt-6">
@@ -230,42 +246,40 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </form>
     `;
-        showModal('Edit Data Barang', content);
-    }
+    showModal('Edit Data Barang', content);
+}
 
-    function deleteProduct(kd_barang) {
-        if (confirm('Apakah Anda yakin ingin menghapus barang ini? Tindakan ini tidak dapat dibatalkan.')) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.innerHTML = `
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="kd_barang" value="${kd_barang}">
-            `;
-            document.body.appendChild(form);
-            form.submit();
-        }
+function deleteProduct(kd_barang) {
+    if (confirm('Apakah Anda yakin ingin menghapus barang ini? Tindakan ini tidak dapat dibatalkan.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="kd_barang" value="${kd_barang}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
     }
+}
 
-    // Search functionality
-    document.getElementById('searchInput').addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const tableRows = document.querySelectorAll('#productsTableBody .product-row');
-        
-        tableRows.forEach(row => {
-            const name = row.dataset.name.toLowerCase();
-            row.style.display = name.includes(searchTerm) ? '' : 'none';
-        });
+document.getElementById('searchInput').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const tableRows = document.querySelectorAll('#productsTableBody .product-row');
+    
+    tableRows.forEach(row => {
+        const name = row.dataset.name.toLowerCase();
+        row.style.display = name.includes(searchTerm) ? '' : 'none';
     });
+});
 
-    // Auto-hide notification
-    setTimeout(() => {
-        const notification = document.querySelector('.notification');
-        if (notification) {
-            notification.style.transition = 'opacity 0.5s ease';
-            notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 500);
-        }
-    }, 5000);
+setTimeout(() => {
+    const notification = document.querySelector('.notification');
+    if (notification) {
+        notification.style.transition = 'opacity 0.5s ease';
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 500);
+    }
+}, 5000);
 </script>
 
 <?php require_once '../includes/footer.php'; ?>
