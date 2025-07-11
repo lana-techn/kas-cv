@@ -121,7 +121,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </script>
 </head>
 
-<div class="flex min-h-screen bg-gray-100">
+<div class="flex min-h-screen ">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <?php if ($message): ?>
@@ -146,9 +146,9 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="flex justify-between items-center card-header">
                         <div>
                             <h3 class="text-xl font-semibold text-white">Daftar Produksi</h3>
-                            <p class="text-indigo-100 mt-1">Total: <?php echo $totalItems; ?> riwayat</p>
+                            <p class="text-blue-100 mt-1">Total: <?php echo $totalItems; ?> riwayat</p>
                         </div>
-                        <button onclick="showAddProductionForm()" class="add-button bg-white text-indigo-600 hover:bg-indigo-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                        <button onclick="showAddProductionForm()" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                             <i class="fas fa-plus mr-2"></i>Tambah Produksi
                         </button>
                     </div>
@@ -222,7 +222,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-auto transform transition-all">
-                <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 p-6 rounded-t-xl">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-xl">
                     <div class="flex justify-between items-center">
                         <h3 id="modalTitle" class="text-xl font-semibold text-white"></h3>
                         <button onclick="closeModal()" class="text-white hover:text-gray-200 transition duration-200">
@@ -288,11 +288,11 @@ function showAddProductionForm() {
                         <input type="text" name="items[0][satuan]" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50" readonly>
                     </div>
                 </div>
-                <button type="button" onclick="addItem()" class="w-full bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition duration-200">Tambah Bahan</button>
+                <button type="button" onclick="addItem()" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200">Tambah Bahan</button>
             </div>
             <div class="flex justify-end space-x-3 mt-8 border-t pt-6">
                 <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">Batal</button>
-                <button type="submit" class="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition duration-200"><i class="fas fa-save mr-2"></i>Simpan</button>
+                <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"><i class="fas fa-save mr-2"></i>Simpan</button>
             </div>
         </form>
     `;

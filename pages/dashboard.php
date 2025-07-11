@@ -142,7 +142,7 @@ if ($userLevel === 'admin') {
             <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
             <?php if ($userLevel === 'admin'): ?>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 items-start">
-                    <div class="group relative bg-gradient-to-br from-blue-500 to-indigo-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                    <div class="group relative bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
                         <div class="absolute -right-4 -bottom-4 bg-white/10 w-24 h-24 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
                         <div class="relative z-10">
                             <h3 class="text-white font-semibold text-lg">Manajemen User</h3>

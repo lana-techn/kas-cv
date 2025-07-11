@@ -132,7 +132,7 @@ $today = date('Y-m-d');
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
-<div class="flex min-h-screen bg-gray-100">
+<div class="flex min-h-screen ">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         

@@ -117,7 +117,6 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <table class="min-w-full responsive-table border border-gray-200" id="productsTable">
                             <thead>
                                 <tr>
-                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">No</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Kode Barang</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Barang</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Stok Saat Ini</th>
@@ -135,11 +134,8 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         </td>
                                     </tr>
                                 <?php else: ?>
-                                    <?php 
-                                    $i = 1;
-                                    foreach ($products as $product): ?>
+                                    <?php foreach ($products as $product): ?>
                                         <tr class="product-row" data-name="<?php echo strtolower(htmlspecialchars($product['nama_barang'])); ?>">
-                                            <td data-label="No." class="px-6 py-4 text-sm text-gray-900"><?php echo $i++; ?></td>
                                             <td data-label="Kode" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($product['kd_barang']); ?></td>
                                             <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($product['nama_barang']); ?></td>
                                             <td data-label="Stok" class="px-6 py-4 text-sm font-bold text-gray-900"><?php echo htmlspecialchars($product['stok']); ?></td>
@@ -173,7 +169,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-auto transform transition-all">
-                <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-t-xl">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-xl">
                     <div class="flex justify-between items-center">
                         <h3 id="modalTitle" class="text-xl font-semibold text-white"></h3>
                         <button onclick="closeModal()" class="text-white hover:text-gray-200 transition duration-200">

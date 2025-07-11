@@ -69,7 +69,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="../assets/css/responsive.css">
 </head>
 
-<div class="flex min-h-screen bg-gray-100">
+<div class="flex min-h-screen ">
     <?php require_once '../includes/sidebar.php'; ?>
     <main class="flex-1 p-6">
         <?php if ($message): ?>
