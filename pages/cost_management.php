@@ -127,7 +127,7 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full responsive-table">
+                            <table class="min-w-full responsive-table border border-gray-200">
                                 <thead>
                                     <tr class="border-b border-gray-200">
                                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Biaya</th>
@@ -161,6 +161,14 @@ $costs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </tbody>
                             </table>
                         </div>
+                        <!-- Pagination -->
+                        <div class="flex justify-end mt-2 p-2">
+                        <div class="flex items-center space-x-2 text-sm">
+                            <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo max(1, $page - 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page <= 1 ? 'opacity-50 cursor-not-allowed' : ''; ?>">Prev</a>
+                            <span class="px-2"><?php echo $page; ?> / <?php echo $totalPages; ?></span>
+                            <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo min($totalPages, $page + 1); ?>" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page >= $totalPages ? 'opacity-50 cursor-not-allowed' : ''; ?>">Next</a>
+                        </div>
+                    </div>
                     <?php endif; ?>
                 </div>
             </div>
