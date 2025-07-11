@@ -165,6 +165,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <table class="min-w-full responsive-table border border-gray-200" id="productionsTable">
                             <thead>
                                 <tr>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">No</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Produksi</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Tanggal</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Barang</th>
@@ -174,8 +175,11 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </tr>
                             </thead>
                             <tbody id="productionsTableBody" class="bg-white divide-y divide-gray-200">
-                                <?php foreach ($productions as $production): ?>
+                                <?php 
+                                $i = 1;
+                                foreach ($productions as $production): ?>
                                     <tr class="production-row" data-name="<?php echo strtolower(htmlspecialchars($production['id_produksi'] . ' ' . $production['product_name'])); ?>">
+                                        <td data-label="No." class="px-6 py-4 text-sm text-gray-900"><?php echo $i++; ?></td>
                                         <td data-label="ID" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['id_produksi']); ?></td>
                                         <td data-label="Tanggal" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars(date('d M Y', strtotime($production['tgl_produksi']))); ?></td>
                                         <td data-label="Barang" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($production['product_name']); ?></td>
