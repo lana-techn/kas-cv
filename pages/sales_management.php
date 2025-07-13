@@ -191,9 +191,9 @@ $today = date('Y-m-d');
                 <div class="flex justify-between items-center card-header">
                     <div>
                         <h3 class="text-xl font-semibold text-white">Manajemen Penjualan</h3>
-                        <p class="text-green-100 mt-1">Total: <?php echo $totalItems; ?> transaksi</p>
+                        <p class="text-blue-100 mt-1">Total: <?php echo $totalItems; ?> transaksi</p>
                     </div>
-                    <button onclick="showAddSaleForm( )" class="add-button bg-white text-green-600 hover:bg-green-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                    <button onclick="showAddSaleForm( )" class="add-button bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium transition duration-200 flex items-center">
                         <i class="fas fa-plus mr-2"></i>Tambah Penjualan
                     </button>
                 </div>
@@ -264,7 +264,7 @@ $today = date('Y-m-d');
                     </span>
                     <div class="flex items-center space-x-2 text-sm">
                         <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo max(1, $page - 1); ?>" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page <= 1 ? 'opacity-50 cursor-not-allowed' : ''; ?>">Prev</a>
-                        <span class="px-3 py-1 bg-green-500 text-white rounded"><?php echo $page; ?></span>
+                        <span class="px-3 py-1 bg-blue-500 text-white rounded"><?php echo $page; ?></span>
                         <a href="?search=<?php echo urlencode($search_query); ?>&page=<?php echo min($totalPages, $page + 1); ?>" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 <?php echo $page >= $totalPages ? 'opacity-50 cursor-not-allowed' : ''; ?>">Next</a>
                     </div>
                 </div>
@@ -277,7 +277,7 @@ $today = date('Y-m-d');
 <div id="sale-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
     <div class="bg-gray-50 rounded-xl shadow-2xl w-full max-w-4xl mx-auto max-h-[90vh] flex flex-col">
         <form id="sale-form" method="POST" action="sales_management.php" class="flex flex-col flex-grow">
-            <div class="bg-gradient-to-r from-green-500 to-green-600 p-5 rounded-t-xl flex justify-between items-center">
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-5 rounded-t-xl flex justify-between items-center">
                 <h3 id="modal-title" class="text-xl font-semibold text-white">Input Data Penjualan</h3>
                 <button type="button" onclick="closeModalSales()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
             </div>
@@ -293,14 +293,14 @@ $today = date('Y-m-d');
                         </div>
                         <div>
                             <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal</label>
-                            <input type="date" name="tgl_jual" id="form-tgl-jual" value="<?php echo $today; ?>" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                            <input type="date" name="tgl_jual" id="form-tgl-jual" value="<?php echo $today; ?>" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
                 </div>
                 <div class="bg-white p-5 rounded-lg shadow">
                     <div class="flex justify-between items-center mb-4 border-b pb-2">
                         <h4 class="font-semibold text-gray-700">Item Penjualan</h4>
-                        <button type="button" onclick="addItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-md text-sm flex items-center"><i class="fas fa-plus mr-1"></i> Tambah</button>
+                        <button type="button" onclick="addItem()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-md text-sm flex items-center"><i class="fas fa-plus mr-1"></i> Tambah</button>
                     </div>
                     <div id="item-list" class="space-y-3"></div>
                 </div>
@@ -309,7 +309,7 @@ $today = date('Y-m-d');
                         <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Total</span><input type="text" id="total_display" readonly class="text-right font-bold text-lg bg-transparent border-0 focus:ring-0"></div>
                         <input type="hidden" name="total_jual" id="total_jual">
                         <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Bayar</span><input type="number" name="bayar" id="bayar" required class="w-1/2 px-3 py-2 border rounded-lg text-right font-bold" min="0" oninput="updateKembali()"></div>
-                        <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Kembali</span><input type="text" id="kembali_display" readonly class="text-right font-bold text-lg text-green-600 bg-transparent border-0 focus:ring-0"></div>
+                        <div class="flex justify-between items-center"><span class="font-semibold text-gray-700">Kembali</span><input type="text" id="kembali_display" readonly class="text-right font-bold text-lg text-blue-600 bg-transparent border-0 focus:ring-0"></div>
                         <input type="hidden" name="kembali" id="kembali">
                     </div>
                 </div>
@@ -317,7 +317,7 @@ $today = date('Y-m-d');
 
             <div class="flex justify-end space-x-4 p-4 bg-gray-100 border-t rounded-b-xl">
                 <button type="button" onclick="closeModalSales()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Batal</button>
-                <button type="submit" id="submit-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg">Simpan</button>
+                <button type="submit" id="submit-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Simpan</button>
             </div>
         </form>
     </div>
