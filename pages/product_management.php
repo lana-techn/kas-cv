@@ -116,10 +116,11 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="overflow-x-auto">
                         <table class="min-w-full responsive-table border border-gray-200" id="productsTable">
                             <thead>
-                                <tr>
+                                <tr class="border-b border-gray-200"> 
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">No.</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Kode Barang</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Barang</th>
-                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Stok Saat Ini</th>
+                                    <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Stok Saat Ini</th>
                                     <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">Aksi</th>
                                 </tr>
                             </thead>
@@ -134,11 +135,13 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         </td>
                                     </tr>
                                 <?php else: ?>
+                                    <?php $i = 1; ?>
                                     <?php foreach ($products as $product): ?>
                                         <tr class="product-row" data-name="<?php echo strtolower(htmlspecialchars($product['nama_barang'])); ?>">
+                                            <td data-label="No." class="px-6 py-4 text-sm text-gray-900"><?php echo $i++; ?></td>
                                             <td data-label="Kode" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($product['kd_barang']); ?></td>
                                             <td data-label="Nama" class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($product['nama_barang']); ?></td>
-                                            <td data-label="Stok" class="px-6 py-4 text-sm font-bold text-gray-900"><?php echo htmlspecialchars($product['stok']); ?></td>
+                                            <td data-label="Stok" class="px-6 py-4 text-sm font-bold text-gray-900 text-center"><?php echo htmlspecialchars($product['stok']); ?></td>
                                             <td class="px-6 py-4 text-center actions-cell">
                                                 <div class="flex justify-center items-center space-x-2">
                                                     <button onclick='showEditProductForm(<?php echo json_encode($product, JSON_HEX_APOS | JSON_HEX_QUOT); ?>)' class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition duration-200" title="Edit">

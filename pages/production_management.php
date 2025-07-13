@@ -164,7 +164,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="overflow-x-auto">
                         <table class="min-w-full responsive-table border border-gray-200" id="productionsTable">
                             <thead>
-                                <tr>
+                                <tr class="border-b border-gray-200">
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">No</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID Produksi</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Tanggal</th>
@@ -175,7 +175,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </tr>
                             </thead>
                             <tbody id="productionsTableBody" class="bg-white divide-y divide-gray-200">
-                                <?php 
+                                <?php
                                 $i = 1;
                                 foreach ($productions as $production): ?>
                                     <tr class="production-row" data-name="<?php echo strtolower(htmlspecialchars($production['id_produksi'] . ' ' . $production['product_name'])); ?>">
@@ -221,7 +221,7 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
 
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-auto transform transition-all">
+            <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-auto transform transition-all">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-xl">
                     <div class="flex justify-between items-center">
                         <h3 id="modalTitle" class="text-xl font-semibold text-white"></h3>
@@ -237,30 +237,40 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <script>
-function showModal(title, content) {
-    document.getElementById('modalTitle').innerHTML = title;
-    document.getElementById('modalContent').innerHTML = content;
-    document.getElementById('modal').classList.remove('hidden');
-    document.getElementById('modal').classList.add('flex');
-}
+    // Modal and other functions remain the same
+    function showModal(title, content) {
+        document.getElementById('modalTitle').innerHTML = title;
+        document.getElementById('modalContent').innerHTML = content;
+        document.getElementById('modal').classList.remove('hidden');
+        document.getElementById('modal').classList.add('flex');
+    }
 
-function closeModal() {
-    document.getElementById('modal').classList.add('hidden');
-    document.getElementById('modal').classList.remove('flex');
-}
+    function closeModal() {
+        document.getElementById('modal').classList.add('hidden');
+        document.getElementById('modal').classList.remove('flex');
+    }
 
-function showAddProductionForm() {
-    let content = `
+    // MODIFIED FUNCTION
+    function showAddProductionForm() {
+        let content = `
         <form method="POST" id="productionForm" onsubmit="return validateForm(this)">
             <input type="hidden" name="action" value="add">
-            <div class="space-y-4 max-h-[calc(90vh-12rem)] overflow-y-auto">
-                <div>
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">ID Produksi</label>
-                    <input type="text" name="id_produksi" value="<?php echo generateId('PRD'); ?>" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50" readonly>
+            <div class="space-y-6 max-h-[calc(90vh-12rem)] overflow-y-auto pr-4">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-semibold mb-2">ID Produksi</label>
+                        <input type="text" name="id_produksi" value="<?php echo generateId('PRD'); ?>" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-semibold mb-2">Jumlah Produksi <span class="text-red-500">*</span></label>
+                        <input type="number" name="jumlah_produksi" min="1" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
+
                 <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Nama Barang <span class="text-red-500">*</span></label>
-                    <select name="kd_barang" class="w-full px-4 py-3 border border-gray-300 rounded-lg" required>
+                    <select name="kd_barang" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Pilih Barang</option>
                         <?php foreach ($products as $product): ?>
                             <option value="<?php echo htmlspecialchars($product['kd_barang']); ?>">
@@ -269,144 +279,173 @@ function showAddProductionForm() {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Jumlah Produksi <span class="text-red-500">*</span></label>
-                    <input type="number" name="jumlah_produksi" min="1" required class="w-full px-4 py-3 border border-gray-300 rounded-lg">
-                </div>
-                <div id="itemsContainer">
-                    <div class="item-row space-y-2 mb-4">
-                        <label class="block text-gray-700 text-sm font-semibold">Bahan Baku</label>
-                        <select name="items[0][kd_bahan]" class="w-full px-4 py-3 border border-gray-300 rounded-lg mb-2" required>
-                            <option value="">Pilih Bahan</option>
-                            <?php foreach ($materials as $material): ?>
-                                <option value="<?php echo htmlspecialchars($material['kd_bahan']); ?>" data-satuan="<?php echo htmlspecialchars($material['satuan']); ?>">
-                                    <?php echo htmlspecialchars($material['nama_bahan']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <input type="number" name="items[0][jum_bahan]" placeholder="Jumlah" class="w-full px-4 py-3 border border-gray-300 rounded-lg mb-2" min="1" required>
-                        <input type="text" name="items[0][satuan]" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50" readonly>
+                
+                <div class="border-t border-gray-200 pt-4">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-3">Bahan Baku yang Digunakan</h4>
+                    <div id="itemsContainer" class="space-y-4">
+                        <div class="item-row grid grid-cols-1 md:grid-cols-12 gap-3 p-3 border rounded-lg">
+                            <div class="md:col-span-5">
+                                <label class="text-xs text-gray-600">Bahan Baku <span class="text-red-500">*</span></label>
+                                <select name="items[0][kd_bahan]" class="w-full p-2 border border-gray-300 rounded-md mt-1" onchange="updateSatuan(this)" required>
+                                    <option value="">Pilih Bahan</option>
+                                    <?php foreach ($materials as $material): ?>
+                                        <option value="<?php echo htmlspecialchars($material['kd_bahan']); ?>" data-satuan="<?php echo htmlspecialchars($material['satuan']); ?>">
+                                            <?php echo htmlspecialchars($material['nama_bahan']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="md:col-span-3">
+                                <label class="text-xs text-gray-600">Jumlah <span class="text-red-500">*</span></label>
+                                <input type="number" name="items[0][jum_bahan]" placeholder="Jumlah" class="w-full p-2 border border-gray-300 rounded-md mt-1" min="1" required>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-xs text-gray-600">Satuan</label>
+                                <input type="text" name="items[0][satuan]" class="w-full p-2 border border-gray-300 rounded-md mt-1 bg-gray-100" readonly>
+                            </div>
+                            <div class="md:col-span-2 flex items-end">
+                                </div>
+                        </div>
                     </div>
+                    <button type="button" onclick="addItem()" class="w-full mt-4 bg-blue-100 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-200 transition duration-200 flex items-center justify-center">
+                        <i class="fas fa-plus mr-2"></i>Tambah Bahan Lain
+                    </button>
                 </div>
-                <button type="button" onclick="addItem()" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200">Tambah Bahan</button>
             </div>
-            <div class="flex justify-end space-x-3 mt-8 border-t pt-6">
-                <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">Batal</button>
-                <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"><i class="fas fa-save mr-2"></i>Simpan</button>
+            <div class="flex justify-end space-x-3 mt-6 border-t pt-6">
+                <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-200">Batal</button>
+                <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 flex items-center"><i class="fas fa-save mr-2"></i>Simpan Produksi</button>
             </div>
         </form>
     `;
-    showModal('Tambah Produksi Baru', content);
-}
+        showModal('Tambah Produksi Baru', content);
+        const firstSelect = document.querySelector('select[name="items[0][kd_bahan]"]');
+        if (firstSelect) {
+            updateSatuan(firstSelect);
+        }
+    }
 
-let itemCount = 1;
-function addItem() {
-    const container = document.getElementById('itemsContainer');
-    const newItem = document.createElement('div');
-    newItem.className = 'item-row space-y-2 mb-4';
-    newItem.innerHTML = `
-        <label class="block text-gray-700 text-sm font-semibold">Bahan Baku</label>
-        <select name="items[${itemCount}][kd_bahan]" class="w-full px-4 py-3 border border-gray-300 rounded-lg mb-2" required>
-            <option value="">Pilih Bahan</option>
-            <?php foreach ($materials as $material): ?>
-                <option value="<?php echo htmlspecialchars($material['kd_bahan']); ?>" data-satuan="<?php echo htmlspecialchars($material['satuan']); ?>">
-                    <?php echo htmlspecialchars($material['nama_bahan']); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <input type="number" name="items[${itemCount}][jum_bahan]" placeholder="Jumlah" class="w-full px-4 py-3 border border-gray-300 rounded-lg mb-2" min="1" required>
-        <input type="text" name="items[${itemCount}][satuan]" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50" readonly>
-        <button type="button" onclick="this.parentElement.remove()" class="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200">Hapus Bahan</button>
+
+    let itemCount = 1;
+    // MODIFIED FUNCTION
+    function addItem() {
+        const container = document.getElementById('itemsContainer');
+        const newItem = document.createElement('div');
+        newItem.className = 'item-row grid grid-cols-1 md:grid-cols-12 gap-3 p-3 border rounded-lg';
+        newItem.innerHTML = `
+        <div class="md:col-span-5">
+            <label class="text-xs text-gray-600">Bahan Baku <span class="text-red-500">*</span></label>
+            <select name="items[${itemCount}][kd_bahan]" class="w-full p-2 border border-gray-300 rounded-md mt-1" onchange="updateSatuan(this)" required>
+                <option value="">Pilih Bahan</option>
+                <?php foreach ($materials as $material): ?>
+                    <option value="<?php echo htmlspecialchars($material['kd_bahan']); ?>" data-satuan="<?php echo htmlspecialchars($material['satuan']); ?>">
+                        <?php echo htmlspecialchars($material['nama_bahan']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="md:col-span-3">
+            <label class="text-xs text-gray-600">Jumlah <span class="text-red-500">*</span></label>
+            <input type="number" name="items[${itemCount}][jum_bahan]" placeholder="Jumlah" class="w-full p-2 border border-gray-300 rounded-md mt-1" min="1" required>
+        </div>
+        <div class="md:col-span-2">
+            <label class="text-xs text-gray-600">Satuan</label>
+            <input type="text" name="items[${itemCount}][satuan]" class="w-full p-2 border border-gray-300 rounded-md mt-1 bg-gray-100" readonly>
+        </div>
+        <div class="md:col-span-2">
+        <label class="text-xs text-gray-600">Aksi</label>
+        <button type="button" onclick="this.closest('.item-row').remove()" class="w-full p-2 mt-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-200">
+        <i class="fas fa-trash-alt"></i>
+        </button>
+    </div>
     `;
-    container.appendChild(newItem);
-    itemCount++;
-    updateSatuan();
-}
+        container.appendChild(newItem);
+        itemCount++;
+    }
 
-function updateSatuan() {
-    document.querySelectorAll('select[name$="[kd_bahan]"]').forEach(select => {
-        const satuanInput = select.parentElement.querySelector('input[name$="[satuan]"]');
-        const selectedOption = select.options[select.selectedIndex];
-        if (selectedOption && selectedOption.dataset.satuan) {
-            satuanInput.value = selectedOption.dataset.satuan;
+    // MODIFIED FUNCTION
+    function updateSatuan(selectElement) {
+        const itemRow = selectElement.closest('.item-row');
+        const satuanInput = itemRow.querySelector('input[name$="[satuan]"]');
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+        if (satuanInput) {
+            satuanInput.value = (selectedOption && selectedOption.dataset.satuan) ? selectedOption.dataset.satuan : '';
         }
-    });
-}
-
-document.querySelectorAll('select[name$="[kd_bahan]"]').forEach(select => {
-    select.addEventListener('change', updateSatuan);
-});
-
-function finishProduction(id) {
-    if (confirm('Apakah Anda yakin ingin menyelesaikan produksi ini?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `<input type="hidden" name="action" value="finish"><input type="hidden" name="id_produksi" value="${id}">`;
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
-
-function deleteProduction(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus produksi ini?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `<input type="hidden" name="action" value="delete"><input type="hidden" name="id_produksi" value="${id}">`;
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
-
-function validateForm(form) {
-    const kdBarang = form.querySelector('select[name="kd_barang"]').value;
-    const jumlahProduksi = parseInt(form.querySelector('input[name="jumlah_produksi"]').value) || 0;
-    const items = form.querySelectorAll('.item-row');
-    let hasValidItem = false;
-
-    if (!kdBarang) {
-        alert('Pilih nama barang terlebih dahulu!');
-        return false;
-    }
-    if (jumlahProduksi <= 0) {
-        alert('Jumlah produksi harus lebih dari 0!');
-        return false;
     }
 
-    items.forEach(item => {
-        const kdBahan = item.querySelector('select[name$="[kd_bahan]"]').value;
-        const jumBahan = parseInt(item.querySelector('input[name$="[jum_bahan]"]').value) || 0;
 
-        if (kdBahan && jumBahan > 0) {
-            hasValidItem = true;
+    // --- Other Javascript functions (finishProduction, deleteProduction, etc.) remain the same ---
+    function finishProduction(id) {
+        if (confirm('Apakah Anda yakin ingin menyelesaikan produksi ini?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `<input type="hidden" name="action" value="finish"><input type="hidden" name="id_produksi" value="${id}">`;
+            document.body.appendChild(form);
+            form.submit();
         }
-    });
-
-    if (!hasValidItem) {
-        alert('Harap isi setidaknya satu bahan dengan jumlah yang valid!');
-        return false;
     }
-    return true;
-}
 
-document.getElementById('searchInput').addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase();
-    const tableRows = document.querySelectorAll('#productionsTableBody .production-row');
-    tableRows.forEach(row => {
-        const name = row.dataset.name.toLowerCase();
-        row.style.display = name.includes(searchTerm) ? '' : 'none';
-    });
-});
+    function deleteProduction(id) {
+        if (confirm('Apakah Anda yakin ingin menghapus produksi ini?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `<input type="hidden" name="action" value="delete"><input type="hidden" name="id_produksi" value="${id}">`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const notifications = document.querySelectorAll('.notification');
-    notifications.forEach(notification => {
-        setTimeout(() => {
-            notification.style.transition = 'opacity 0.5s ease';
-            notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 500);
-        }, 3000);
+    function validateForm(form) {
+        const kdBarang = form.querySelector('select[name="kd_barang"]').value;
+        const jumlahProduksi = parseInt(form.querySelector('input[name="jumlah_produksi"]').value) || 0;
+        const items = form.querySelectorAll('.item-row');
+        let hasValidItem = false;
+
+        if (!kdBarang) {
+            alert('Pilih nama barang terlebih dahulu!');
+            return false;
+        }
+        if (jumlahProduksi <= 0) {
+            alert('Jumlah produksi harus lebih dari 0!');
+            return false;
+        }
+
+        items.forEach(item => {
+            const kdBahan = item.querySelector('select[name$="[kd_bahan]"]').value;
+            const jumBahan = parseInt(item.querySelector('input[name$="[jum_bahan]"]').value) || 0;
+
+            if (kdBahan && jumBahan > 0) {
+                hasValidItem = true;
+            }
+        });
+
+        if (!hasValidItem) {
+            alert('Harap isi setidaknya satu bahan dengan jumlah yang valid!');
+            return false;
+        }
+        return true;
+    }
+
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const tableRows = document.querySelectorAll('#productionsTableBody .production-row');
+        tableRows.forEach(row => {
+            const name = row.dataset.name.toLowerCase();
+            row.style.display = name.includes(searchTerm) ? '' : 'none';
+        });
     });
-});
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const notifications = document.querySelectorAll('.notification');
+        notifications.forEach(notification => {
+            setTimeout(() => {
+                notification.style.transition = 'opacity 0.5s ease';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        });
+    });
 </script>
 
 <?php require_once '../includes/footer.php'; ?>

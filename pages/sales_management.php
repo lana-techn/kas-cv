@@ -276,49 +276,49 @@ $today = date('Y-m-d');
 <template id="item-template">
     <div class="item-row grid grid-cols-12 gap-x-6 gap-y-2 items-center p-3 border-b border-stone-200 last:border-b-0 hover:bg-slate-50 transition-colors duration-200">
 
-    <div class="col-span-12 md:col-span-4">
-        <label for="kd_barang_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Barang</label>
-        <select id="kd_barang_0" name="items[0][kd_barang]" required
+        <div class="col-span-12 md:col-span-4">
+            <label for="kd_barang_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Barang</label>
+            <select id="kd_barang_0" name="items[0][kd_barang]" required
                 class="w-full bg-transparent p-1 border-0 rounded-md appearance-none focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium">
-            <option value="">Pilih Barang...</option>
-            <?php foreach ($products as $p): ?>
-                <option value="<?php echo htmlspecialchars($p['kd_barang']); ?>" data-stok="<?php echo htmlspecialchars($p['stok']); ?>">
-                    <?php echo htmlspecialchars($p['nama_barang']) . ' (Stok: ' . htmlspecialchars($p['stok']) . ')'; ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-    </div>
+                <option value="">Pilih Barang...</option>
+                <?php foreach ($products as $p): ?>
+                    <option value="<?php echo htmlspecialchars($p['kd_barang']); ?>" data-stok="<?php echo htmlspecialchars($p['stok']); ?>">
+                        <?php echo htmlspecialchars($p['nama_barang']) . ' (Stok: ' . htmlspecialchars($p['stok']) . ')'; ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
 
-    <div class="col-span-6 md:col-span-2">
-        <label for="harga_jual_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Harga</label>
-        <input id="harga_jual_0" type="number" name="items[0][harga_jual]" required
-               class="w-full bg-transparent p-1 border-0 rounded-md text-right focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium"
-               placeholder="0" oninput="updateTotal(this)">
-    </div>
+        <div class="col-span-6 md:col-span-2">
+            <label for="harga_jual_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Harga</label>
+            <input id="harga_jual_0" type="number" name="items[0][harga_jual]" required
+                class="w-full bg-transparent p-1 border-0 rounded-md text-right focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium"
+                placeholder="0" oninput="updateTotal(this)">
+        </div>
 
-    <div class="col-span-6 md:col-span-2">
-        <label for="qty_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Qty</label>
-        <input id="qty_0" type="number" name="items[0][qty]" required value="1"
-               class="w-full bg-transparent p-1 border-0 rounded-md text-right focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium"
-               placeholder="0" oninput="updateTotal(); checkStock(this);">
-    </div>
+        <div class="col-span-6 md:col-span-2">
+            <label for="qty_0" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Qty</label>
+            <input id="qty_0" type="number" name="items[0][qty]" required value="1"
+                class="w-full bg-transparent p-1 border-0 rounded-md text-right focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base text-slate-900 font-medium"
+                placeholder="0" oninput="updateTotal(); checkStock(this);">
+        </div>
 
-    <div class="col-span-10 md:col-span-3">
-        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Subtotal</label>
-        <input type="text" name="items[0][subtotal_display]" readonly
-               class="w-full bg-transparent p-1 border-0 text-right font-bold text-emerald-700 text-base focus:outline-none focus:ring-0 cursor-default">
-    </div>
+        <div class="col-span-10 md:col-span-3">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Subtotal</label>
+            <input type="text" name="items[0][subtotal_display]" readonly
+                class="w-full bg-transparent p-1 border-0 text-right font-bold text-emerald-700 text-base focus:outline-none focus:ring-0 cursor-default">
+        </div>
 
-    <div class="col-span-2 md:col-span-1 flex items-center justify-center pt-5">
-        <button type="button"
+        <div class="col-span-2 md:col-span-1 flex items-center justify-center pt-5">
+            <button type="button"
                 class="w-8 h-8 flex items-center justify-center text-slate-400 bg-transparent rounded-full hover:bg-red-100 hover:text-red-500 transition-colors duration-200"
                 onclick="removeItem(this)" title="Hapus item">
-            <i class="fas fa-trash-alt text-sm"></i>
-        </button>
-    </div>
+                <i class="fas fa-trash-alt text-sm"></i>
+            </button>
+        </div>
 
-    <input type="hidden" name="items[0][subtotal]">
-</div>
+        <input type="hidden" name="items[0][subtotal]">
+    </div>
 </template>
 
 <script>

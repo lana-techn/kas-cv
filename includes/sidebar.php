@@ -36,7 +36,7 @@
                     ['name' => 'Daftar Supplier', 'href' => 'supplier_list.php', 'icon' => 'fa-solid fa-address-book', 'roles' => ['pegawai']],
 
                     // Menu Pemilik
-                    ['name' => 'Laporan', 'href' => 'reports.php', 'icon' => 'fa-solid fa-chart-pie', 'roles' => ['pemilik']],
+                    ['name' => 'Laporan', 'href' => 'reports.php', 'icon' => 'fa-solid fa-chart-pie', 'roles' => ['pemilik', 'pegawai']],
                 ];
                 ?>
 

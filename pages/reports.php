@@ -4,7 +4,7 @@ require_once '../includes/function.php';
 require_once '../includes/header.php';
 
 // Cek hak akses
-if (!isset($_SESSION['user']) || $_SESSION['user']['level'] !== 'pemilik') {
+if (!isset($_SESSION['user']) || $_SESSION['user']['level'] !== 'pemilik' && $_SESSION['user']['level'] !== 'pegawai') {
     header('Location: dashboard.php');
     exit;
 }
@@ -13,7 +13,12 @@ date_default_timezone_set('Asia/Jakarta');
 // Logika untuk filter tanggal dan jenis laporan
 $today = date('Y-m-d');
 $default_start_date = date('Y-m-d', strtotime('-29 days'));
+$user_level = $_SESSION['user']['level'] ?? '';
 $report_type = $_POST['report_type'] ?? 'penjualan';
+// Jika bukan pemilik, paksa report_type selain buku_besar
+if ($report_type === 'buku_besar' && $user_level !== 'pemilik') {
+    $report_type = 'penjualan';
+}
 $start_date = $_POST['start_date'] ?? $default_start_date;
 $end_date = $_POST['end_date'] ?? $today;
 if ($end_date > $today) $end_date = $today;
@@ -48,7 +53,9 @@ if ($start_date > $end_date) $start_date = $end_date;
                             <option value="pembelian" <?php if ($report_type == 'pembelian') echo 'selected'; ?>>Laporan Pembelian</option>
                             <option value="penerimaan_kas" <?php if ($report_type == 'penerimaan_kas') echo 'selected'; ?>>Laporan Penerimaan Kas</option>
                             <option value="pengeluaran_kas" <?php if ($report_type == 'pengeluaran_kas') echo 'selected'; ?>>Laporan Pengeluaran Kas</option>
-                            <option value="buku_besar" <?php if ($report_type == 'buku_besar') echo 'selected'; ?>>Laporan Buku Besar</option>
+                            <?php if ($user_level === 'pemilik'): ?>
+                                <option value="buku_besar" <?php if ($report_type == 'buku_besar') echo 'selected'; ?>>Laporan Buku Besar</option>
+                            <?php endif; ?>
                         </select>
                     </div>
 
@@ -132,7 +139,7 @@ if ($start_date > $end_date) $start_date = $end_date;
                             $columns = ['tgl_pengeluaran_kas', 'uraian', 'total'];
                             $total_column = 'total';
                             break;
-                            case 'buku_besar':
+                        case 'buku_besar':
                             // 1. Hitung Saldo Awal (semua transaksi sebelum start_date)
                             $stmt_saldo_awal = $pdo->prepare("
                                 SELECT 
@@ -158,7 +165,7 @@ if ($start_date > $end_date) $start_date = $end_date;
                             break;
                     }
 
-                   $stmt = $pdo->prepare($query);
+                    $stmt = $pdo->prepare($query);
                     $stmt->execute($params);
                     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -177,10 +184,10 @@ if ($start_date > $end_date) $start_date = $end_date;
                         echo '<tbody class="bg-white">';
                         // Baris untuk Saldo Awal
                         echo '<tr class="bg-gray-50 font-semibold"><td colspan="5" class="px-4 py-2 border text-right">Saldo Awal</td><td class="px-4 py-2 border text-right">' . formatCurrency($saldo_awal) . '</td></tr>';
-                        
+
                         $saldo_berjalan = $saldo_awal;
                         if (empty($data)) {
-                             echo "<tr><td colspan='6' class='px-6 py-12 text-center text-gray-500 border'>Tidak ada transaksi pada periode ini.</td></tr>";
+                            echo "<tr><td colspan='6' class='px-6 py-12 text-center text-gray-500 border'>Tidak ada transaksi pada periode ini.</td></tr>";
                         } else {
                             foreach ($data as $index => $row) {
                                 $saldo_berjalan += $row['debit'] - $row['kredit'];
@@ -197,7 +204,6 @@ if ($start_date > $end_date) $start_date = $end_date;
                         echo '</tbody>';
                         // Footer untuk Saldo Akhir
                         echo '<tfoot class="bg-gray-100 font-bold"><tr><td colspan="5" class="px-4 py-3 text-right border">Saldo Akhir</td><td class="px-4 py-3 text-right border">' . formatCurrency($saldo_berjalan) . '</td></tr></tfoot>';
-
                     } else { // Untuk laporan selain buku besar
                         echo '<tbody class="bg-white">';
                         if (empty($data)) {
@@ -224,7 +230,7 @@ if ($start_date > $end_date) $start_date = $end_date;
                         }
                         echo '</tbody>';
                         if (!empty($data) && isset($total_column)) {
-                           echo '<tfoot class="bg-gray-100 font-bold">';
+                            echo '<tfoot class="bg-gray-100 font-bold">';
                             if ($report_type === 'penjualan') {
                                 echo "<tr><td colspan='3' class='px-4 py-3 text-right border-t'>Total</td><td class='px-4 py-3 text-right border-t'>" . formatCurrency($total) . "</td><td colspan='2' class='border-t'></td></tr>";
                             } elseif ($report_type === 'pembelian') {
