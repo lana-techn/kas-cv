@@ -1,6 +1,6 @@
 <?php
 $host = 'localhost';
-$dbname = 'karya_wahana_sentosa';
+$dbname = 'cv_kwas';
 $username = 'root';
 $password = '';
 
