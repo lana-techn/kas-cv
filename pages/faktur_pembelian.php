@@ -140,8 +140,8 @@ $items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
             </section>
             
             <footer class="mt-12 pt-8 border-t text-center text-gray-500 text-sm">
-                <p>Terima kasih atas kerja samanya.</p>
-                <p>CV. Karya Wahana Sentosa &copy; <?php echo date('Y'); ?></p>
+                <!-- <p>Terima kasih atas kerja samanya.</p> -->
+                <!-- <p>CV. Karya Wahana Sentosa &copy; <?php echo date('Y'); ?></p> -->
             </footer>
         </div>
     </div>
