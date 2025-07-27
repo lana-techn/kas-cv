@@ -14,27 +14,46 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         if ($_POST['action'] === 'add') {
-            if (empty($_POST['id_user']) || empty($_POST['username']) || empty($_POST['password']) || empty($_POST['level'])) {
+            if (empty($_POST['username']) || empty($_POST['password']) || empty($_POST['level'])) {
                 throw new Exception('Semua field harus diisi');
             }
 
-            // Check if username already exists
+            // Cek username sudah ada atau belum
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM user WHERE username = ?");
             $stmt->execute([$_POST['username']]);
             if ($stmt->fetchColumn() > 0) {
                 throw new Exception('Username sudah digunakan');
             }
 
-            // Check if id_user already exists
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM user WHERE id_user = ?");
-            $stmt->execute([$_POST['id_user']]);
-            if ($stmt->fetchColumn() > 0) {
-                throw new Exception('ID User sudah digunakan');
+            // Generate ID user otomatis berdasarkan level
+            $level_prefix = '';
+            switch ($_POST['level']) {
+                case 'admin':
+                    $level_prefix = 'ADM';
+                    break;
+                case 'pegawai':
+                    $level_prefix = 'PGW';
+                    break;
+                case 'pemilik':
+                    $level_prefix = 'PMK';
+                    break;
+                default:
+                    $level_prefix = 'USR'; // Default fallback
             }
 
+            // Cari ID tertinggi untuk prefix tersebut
+            $stmt = $pdo->prepare("SELECT MAX(CAST(SUBSTRING(id_user, 4) AS UNSIGNED)) AS max_id FROM user WHERE id_user LIKE ?");
+            $stmt->execute([$level_prefix . '%']);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $next_id = ($result['max_id'] ? $result['max_id'] + 1 : 1);
+            $new_id_user = $level_prefix . str_pad($next_id, 3, '0', STR_PAD_LEFT); // Format: ADM001, PGW002, PMK003, dst.
+
+            // proses input user baru
             $stmt = $pdo->prepare("INSERT INTO user (id_user, username, password, level) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$_POST['id_user'], $_POST['username'], password_hash($_POST['password'], PASSWORD_DEFAULT), $_POST['level']]);
-            $message = 'User berhasil ditambahkan';
+            $stmt->execute([$new_id_user, $_POST['username'], password_hash($_POST['password'], PASSWORD_DEFAULT), $_POST['level']]);
+            $message = 'User berhasil ditambahkan dengan ID: ' . $new_id_user;
+
+            //Edit User
         } elseif ($_POST['action'] === 'edit') {
             if (empty($_POST['id_user']) || empty($_POST['username']) || empty($_POST['level'])) {
                 throw new Exception('Semua field harus diisi');
@@ -55,12 +74,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->execute([$_POST['username'], $_POST['level'], $_POST['id_user']]);
             }
             $message = 'User berhasil diupdate';
+
+            //Hapus User
         } elseif ($_POST['action'] === 'delete') {
             // Prevent deleting current user
             if ($_POST['id_user'] === $_SESSION['user']['id_user']) {
                 throw new Exception('Tidak dapat menghapus user yang sedang login');
             }
-
+            // PROSES HAPUS USER
             $stmt = $pdo->prepare("DELETE FROM user WHERE id_user = ?");
             $stmt->execute([$_POST['id_user']]);
             $message = 'User berhasil dihapus';
@@ -69,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $error = $e->getMessage();
     }
 }
-
+// Menampilkan Daftar User
 $stmt = $pdo->query("SELECT * FROM user ORDER BY username");
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -124,7 +145,7 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200">
-                                <?php 
+                                <?php
                                 $i = 1;
                                 foreach ($users as $user): ?>
                                     <tr class="hover:bg-gray-50 transition duration-200">
@@ -166,10 +187,6 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <input type="hidden" name="action" value="add">
             <div class="space-y-4">
                 <div>
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">ID User <span class="text-red-500">*</span></label>
-                    <input type="text" name="id_user" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Masukkan ID User">
-                </div>
-                <div>
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Username <span class="text-red-500">*</span></label>
                     <input type="text" name="username" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Masukkan username">
                 </div>
@@ -199,8 +216,8 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     function editUser(id_user) {
         const userRow = document.querySelector(`button[onclick=\"editUser('${id_user}')\"]`).closest('tr');
         const cells = userRow.querySelectorAll('td');
-        const username = cells[1].textContent;
-        const level = cells[2].textContent;
+        const username = cells[2].textContent;
+        const level = cells[3].textContent;
         const content = `
         <form method="POST" onsubmit="return validateUserForm(this)">
             <input type="hidden" name="action" value="edit">
@@ -249,14 +266,24 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
     }
 
+    // Notifikasi untuk field semua harus di isi
     function validateUserForm(form) {
-        const id = form.querySelector('input[name="id_user"]').value.trim();
+        const action = form.querySelector('input[name="action"]').value;
         const username = form.querySelector('input[name="username"]').value.trim();
-        const password = form.querySelector('input[name="password"]') ? form.querySelector('input[name="password"]').value : '';
         const level = form.querySelector('select[name="level"]').value;
-        if (!id || !username || (!form.action.value || (form.action.value === 'add' && !password)) || !level) {
-            alert('Semua field wajib diisi!');
-            return false;
+
+        if (action === 'add') {
+            const password = form.querySelector('input[name="password"]').value;
+            if (!username || !password || !level) {
+                alert('Semua field wajib diisi!');
+                return false;
+            }
+        } else if (action === 'edit') {
+            const id = form.querySelector('input[name="id_user"]').value.trim();
+            if (!id || !username || !level) {
+                alert('Semua field wajib diisi!');
+                return false;
+            }
         }
         return true;
     }

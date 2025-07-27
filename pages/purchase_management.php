@@ -90,17 +90,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             foreach ($items as $item) {
                 $stmt_detail = $pdo->prepare("INSERT INTO detail_pembelian (id_detail_beli, id_pembelian, kd_bahan, harga_beli, qty, subtotal) VALUES (?, ?, ?, ?, ?, ?)");
                 $stmt_detail->execute([generateId('DBL'), $id_pembelian, $item['kd_bahan'], $item['harga_beli'], $item['qty'], $item['subtotal']]);
-                
+
                 $stmt_stok = $pdo->prepare("UPDATE bahan SET stok = stok + ? WHERE kd_bahan = ?");
                 $stmt_stok->execute([$item['qty'], $item['kd_bahan']]);
             }
 
             // 3. Catat sebagai pengeluaran kas
+            $id_pengeluaran_kas = generateId('PKS');
+            $uraian = 'Pembelian Bahan ' . $id_pembelian;
             $stmt_kas = $pdo->prepare("INSERT INTO pengeluaran_kas (id_pengeluaran_kas, id_pembelian, tgl_pengeluaran_kas, uraian, total) VALUES (?, ?, ?, ?, ?)");
-            $stmt_kas->execute([generateId('PKS'), $id_pembelian, $_POST['tgl_beli'], 'Pembelian Bahan ' . $id_pembelian, $_POST['total_beli']]);
-            
-            $_SESSION['message'] = 'Pembelian berhasil ditambahkan.';
+            $stmt_kas->execute([$id_pengeluaran_kas, $id_pembelian, $_POST['tgl_beli'], $uraian, $_POST['total_beli']]);
 
+            // 4. Update tabel kas
+            // Cek saldo terakhir
+            $stmt_saldo = $pdo->query("SELECT COALESCE(MAX(saldo), 0) FROM kas");
+            $saldo_terakhir = $stmt_saldo->fetchColumn();
+            $saldo_baru = $saldo_terakhir - $_POST['total_beli'];
+
+            // Catat ke buku kas
+            $pdo->prepare("INSERT INTO kas (id_kas, id_pengeluaran_kas, tanggal, keterangan, debit, kredit, saldo) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                ->execute([
+                    generateId('KAS'),
+                    $id_pengeluaran_kas,
+                    $_POST['tgl_beli'],
+                    $uraian,
+                    0,
+                    $_POST['total_beli'],
+                    $saldo_baru
+                ]);
+
+            $_SESSION['message'] = 'Pembelian berhasil ditambahkan.';
         } elseif ($action === 'edit') {
             $id_pembelian = $_POST['id_pembelian'];
             if (empty($id_pembelian)) throw new Exception("ID Pembelian tidak valid untuk diedit.");
@@ -126,9 +145,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $pdo->prepare("UPDATE bahan SET stok = stok + ? WHERE kd_bahan = ?")->execute([$item['qty'], $item['kd_bahan']]);
             }
 
-            // 5. Update data di tabel kas
+            // 5. Update data di tabel pengeluaran kas
             $pdo->prepare("UPDATE pengeluaran_kas SET tgl_pengeluaran_kas = ?, total = ? WHERE id_pembelian = ?")->execute([$_POST['tgl_beli'], $_POST['total_beli'], $id_pembelian]);
-            
+
+            // 6. Update tabel kas
+            // Cari id_pengeluaran_kas
+            $stmt_pengeluaran = $pdo->prepare("SELECT id_pengeluaran_kas FROM pengeluaran_kas WHERE id_pembelian = ?");
+            $stmt_pengeluaran->execute([$id_pembelian]);
+            $id_pengeluaran_kas = $stmt_pengeluaran->fetchColumn();
+
+            // Hapus entri kas lama
+            $pdo->prepare("DELETE FROM kas WHERE id_pengeluaran_kas = ?")->execute([$id_pengeluaran_kas]);
+
+            // Cek saldo terakhir
+            $stmt_saldo = $pdo->query("SELECT COALESCE(MAX(saldo), 0) FROM kas");
+            $saldo_terakhir = $stmt_saldo->fetchColumn();
+            $saldo_baru = $saldo_terakhir - $_POST['total_beli'];
+
+            // Catat ke buku kas yang baru
+            $uraian = 'Pembelian Bahan ' . $id_pembelian . ' (Update)';
+            $pdo->prepare("INSERT INTO kas (id_kas, id_pengeluaran_kas, tanggal, keterangan, debit, kredit, saldo) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                ->execute([
+                    generateId('KAS'),
+                    $id_pengeluaran_kas,
+                    $_POST['tgl_beli'],
+                    $uraian,
+                    0,
+                    $_POST['total_beli'],
+                    $saldo_baru
+                ]);
+
             $_SESSION['message'] = 'Pembelian berhasil diupdate.';
         }
 
@@ -137,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $pdo->rollBack(); // Jika ada error, batalkan semua perubahan
         $_SESSION['error'] = 'Terjadi kesalahan: ' . $e->getMessage();
     }
-    
+
     // Alihkan kembali ke halaman utama untuk mencegah resubmit (Pola PRG)
     header('Location: purchase_management.php');
     exit;
@@ -179,6 +225,7 @@ $today = date('Y-m-d');
 ?>
 
 <!-- ===== BAGIAN 3: KODE HTML & JAVASCRIPT ===== -->
+
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -263,7 +310,7 @@ $today = date('Y-m-d');
                         </tbody>
                     </table>
                 </div>
-                
+
                 <!-- Pagination -->
                 <div class="flex justify-between items-center mt-4">
                     <span class="text-sm text-gray-700">
@@ -375,7 +422,11 @@ $today = date('Y-m-d');
     const modal = document.getElementById('purchase-modal');
     const form = document.getElementById('purchase-form');
     const itemList = document.getElementById('item-list');
-    const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
+    const currencyFormatter = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    });
     let itemIndex = 0;
 
     function closeModalPurchase() {
@@ -441,7 +492,7 @@ $today = date('Y-m-d');
     function addItem() {
         const template = document.getElementById('item-template').content.cloneNode(true);
         const itemRow = template.querySelector('.item-row');
-        
+
         // Update name attributes with a unique index
         itemRow.querySelectorAll('select, input').forEach(input => {
             let name = input.getAttribute('name');
@@ -449,7 +500,7 @@ $today = date('Y-m-d');
                 input.name = name.replace('[0]', `[${itemIndex}]`);
             }
         });
-        
+
         itemList.appendChild(template);
         itemIndex++;
         return itemList.lastElementChild;

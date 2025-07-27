@@ -51,17 +51,36 @@ switch ($report_type) {
         $headers = ['No.', 'Tanggal', 'Uraian', 'Jumlah (Rp)'];
         $columns = ['tgl_pengeluaran_kas', 'uraian', 'total'];
         break;
-        
+
     case 'buku_besar':
         $report_title = "Laporan Buku Besar";
-        // 1. Hitung Saldo Awal
-        $stmt_saldo_awal = $pdo->prepare("SELECT (SELECT COALESCE(SUM(total), 0) FROM penerimaan_kas WHERE tgl_terima_kas < ?) - (SELECT COALESCE(SUM(total), 0) FROM pengeluaran_kas WHERE tgl_pengeluaran_kas < ?) as saldo_awal");
-        $stmt_saldo_awal->execute([$start_date, $start_date]);
-        $saldo_awal = $stmt_saldo_awal->fetchColumn();
 
-        // 2. Query untuk transaksi pada periode yang dipilih
-        $query = "(SELECT tgl_terima_kas as tanggal, uraian, total as debit, 0 as kredit FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ?) UNION ALL (SELECT tgl_pengeluaran_kas as tanggal, uraian, 0 as debit, total as kredit FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ?) ORDER BY tanggal ASC";
-        $params = [$start_date, $end_date, $start_date, $end_date];
+        // Cek apakah ada data dalam tabel kas
+        $check_kas = $pdo->query("SELECT COUNT(*) FROM kas")->fetchColumn();
+
+        if ($check_kas > 0) {
+            // Jika ada data dalam tabel kas, gunakan itu untuk buku besar
+
+            // 1. Cari saldo awal (saldo terakhir sebelum start_date)
+            $stmt_saldo_awal = $pdo->prepare("SELECT COALESCE(MAX(saldo), 0) FROM kas WHERE tanggal < ?");
+            $stmt_saldo_awal->execute([$start_date]);
+            $saldo_awal = $stmt_saldo_awal->fetchColumn();
+
+            // 2. Ambil transaksi dari tabel kas untuk periode yang dipilih
+            $query = "SELECT tanggal, keterangan as uraian, debit, kredit, saldo FROM kas WHERE tanggal BETWEEN ? AND ? ORDER BY tanggal ASC, id_kas ASC";
+            $params = [$start_date, $end_date];
+        } else {
+            // Fallback ke penerimaan_kas dan pengeluaran_kas jika kas kosong
+            // 1. Hitung Saldo Awal
+            $stmt_saldo_awal = $pdo->prepare("SELECT (SELECT COALESCE(SUM(total), 0) FROM penerimaan_kas WHERE tgl_terima_kas < ?) - (SELECT COALESCE(SUM(total), 0) FROM pengeluaran_kas WHERE tgl_pengeluaran_kas < ?) as saldo_awal");
+            $stmt_saldo_awal->execute([$start_date, $start_date]);
+            $saldo_awal = $stmt_saldo_awal->fetchColumn();
+
+            // 2. Query untuk transaksi pada periode yang dipilih
+            $query = "(SELECT tgl_terima_kas as tanggal, uraian, total as debit, 0 as kredit FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ?) UNION ALL (SELECT tgl_pengeluaran_kas as tanggal, uraian, 0 as debit, total as kredit FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ?) ORDER BY tanggal ASC";
+            $params = [$start_date, $end_date, $start_date, $end_date];
+        }
+
         $headers = ['No.', 'Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo'];
         $columns = ['tanggal', 'uraian', 'debit', 'kredit', 'saldo']; // 'saldo' adalah kolom virtual
         break;
@@ -93,7 +112,7 @@ if (empty($data) && $report_type != 'buku_besar') {
     echo '<tr><td colspan="' . count($headers) . '" style="text-align:center;">Tidak ada data.</td></tr>';
 } else {
     $grand_total = 0;
-    
+
     // Logika Khusus untuk Buku Besar
     if ($report_type === 'buku_besar') {
         echo '<tr><td colspan="' . (count($headers) - 1) . '" style="text-align:right; font-weight:bold;">Saldo Awal</td><td style="mso-number-format:\#\,\#\#0; font-weight:bold;">' . $saldo_awal . '</td></tr>';
@@ -111,7 +130,6 @@ if (empty($data) && $report_type != 'buku_besar') {
         }
         // Footer untuk Saldo Akhir
         echo '<tfoot><tr><td colspan="' . (count($headers) - 1) . '" style="text-align:right; font-weight:bold;">Saldo Akhir</td><td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . $saldo_berjalan . '</td></tr></tfoot>';
-    
     } else { // Untuk Laporan Lainnya
         foreach ($data as $index => $row) {
             echo '<tr>';
@@ -119,7 +137,7 @@ if (empty($data) && $report_type != 'buku_besar') {
             foreach ($columns as $col) {
                 $value = $row[$col] ?? '';
                 $style = '';
-                
+
                 if (strpos($col, 'tgl_') !== false) {
                     $value = date('d-m-Y', strtotime($value));
                 } elseif (is_numeric($value)) {
@@ -130,12 +148,12 @@ if (empty($data) && $report_type != 'buku_besar') {
             echo '</tr>';
             // Kalkulasi grand total
             $total_col_name = $total_column ?? '';
-            if(!empty($total_col_name)) $grand_total += (float)($row[$total_col_name] ?? 0);
+            if (!empty($total_col_name)) $grand_total += (float)($row[$total_col_name] ?? 0);
         }
         // Footer untuk Total
         if (!empty($data) && !empty($total_column)) {
             $colspan = count($headers) - 1;
-             echo '<tfoot><tr><td colspan="' . $colspan . '" style="text-align:right; font-weight:bold;">Total</td><td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . $grand_total . '</td></tr></tfoot>';
+            echo '<tfoot><tr><td colspan="' . $colspan . '" style="text-align:right; font-weight:bold;">Total</td><td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . $grand_total . '</td></tr></tfoot>';
         }
     }
 }
@@ -144,4 +162,3 @@ echo '</tbody></table></body></html>';
 // Membersihkan output buffer dan mengirimkannya ke browser
 ob_end_flush();
 exit();
-?>

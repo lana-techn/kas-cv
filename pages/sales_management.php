@@ -90,15 +90,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 $stmt_detail = $pdo->prepare("INSERT INTO detail_penjualan (id_detail_jual, id_penjualan, kd_barang, harga_jual, qty, subtotal) VALUES (?, ?, ?, ?, ?, ?)");
                 $stmt_detail->execute([generateId('DJL'), $id_penjualan, $item['kd_barang'], $item['harga_jual'], $item['qty'], $item['subtotal']]);
-                
+
                 $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?")->execute([$item['qty'], $item['kd_barang']]);
             }
 
-            $pdo->prepare("INSERT INTO penerimaan_kas (id_penerimaan_kas, id_penjualan, tgl_terima_kas, uraian, total) VALUES (?, ?, ?, ?, ?)")->execute([generateId('PKS'), $id_penjualan, $_POST['tgl_jual'], 'Penjualan Produk ' . $id_penjualan, $_POST['total_jual']]);
-            
+            $id_penerimaan_kas = generateId('PKS');
+            $uraian = 'Penjualan Produk ' . $id_penjualan;
+            $pdo->prepare("INSERT INTO penerimaan_kas (id_penerimaan_kas, id_penjualan, tgl_terima_kas, uraian, total) VALUES (?, ?, ?, ?, ?)")->execute([$id_penerimaan_kas, $id_penjualan, $_POST['tgl_jual'], $uraian, $_POST['total_jual']]);
+
+            // Update tabel kas
+            // Cek saldo terakhir
+            $stmt_saldo = $pdo->query("SELECT COALESCE(MAX(saldo), 0) FROM kas");
+            $saldo_terakhir = $stmt_saldo->fetchColumn();
+            $saldo_baru = $saldo_terakhir + $_POST['total_jual'];
+
+            // Catat ke buku kas
+            $pdo->prepare("INSERT INTO kas (id_kas, id_penerimaan_kas, tanggal, keterangan, debit, kredit, saldo) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                ->execute([
+                    generateId('KAS'),
+                    $id_penerimaan_kas,
+                    $_POST['tgl_jual'],
+                    $uraian,
+                    $_POST['total_jual'],
+                    0,
+                    $saldo_baru
+                ]);
+
             $_SESSION['message'] = 'Penjualan berhasil ditambahkan.';
             unset($_SESSION['temp_sale_id']);
-
         } elseif ($action === 'edit') {
             $id_penjualan = $_POST['id_penjualan'];
             if (empty($id_penjualan)) throw new Exception("ID Penjualan tidak valid untuk diedit.");
@@ -125,14 +144,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if ($current_stock < $item['qty']) {
                     throw new Exception("Stok untuk barang {$item['kd_barang']} tidak mencukupi setelah update. Sisa: {$current_stock}");
                 }
-                
+
                 $pdo->prepare("INSERT INTO detail_penjualan (id_detail_jual, id_penjualan, kd_barang, harga_jual, qty, subtotal) VALUES (?, ?, ?, ?, ?, ?)")->execute([generateId('DJL'), $id_penjualan, $item['kd_barang'], $item['harga_jual'], $item['qty'], $item['subtotal']]);
                 $pdo->prepare("UPDATE barang SET stok = stok - ? WHERE kd_barang = ?")->execute([$item['qty'], $item['kd_barang']]);
             }
 
-            // 5. Update kas
+            // 5. Update penerimaan kas
             $pdo->prepare("UPDATE penerimaan_kas SET tgl_terima_kas = ?, total = ? WHERE id_penjualan = ?")->execute([$_POST['tgl_jual'], $_POST['total_jual'], $id_penjualan]);
-            
+
+            // 6. Update tabel kas
+            // Cari id_penerimaan_kas
+            $stmt_penerimaan = $pdo->prepare("SELECT id_penerimaan_kas FROM penerimaan_kas WHERE id_penjualan = ?");
+            $stmt_penerimaan->execute([$id_penjualan]);
+            $id_penerimaan_kas = $stmt_penerimaan->fetchColumn();
+
+            // Hapus entri kas lama
+            $pdo->prepare("DELETE FROM kas WHERE id_penerimaan_kas = ?")->execute([$id_penerimaan_kas]);
+
+            // Cek saldo terakhir
+            $stmt_saldo = $pdo->query("SELECT COALESCE(MAX(saldo), 0) FROM kas");
+            $saldo_terakhir = $stmt_saldo->fetchColumn();
+            $saldo_baru = $saldo_terakhir + $_POST['total_jual'];
+
+            // Catat ke buku kas yang baru
+            $uraian = 'Penjualan Produk ' . $id_penjualan . ' (Update)';
+            $pdo->prepare("INSERT INTO kas (id_kas, id_penerimaan_kas, tanggal, keterangan, debit, kredit, saldo) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                ->execute([
+                    generateId('KAS'),
+                    $id_penerimaan_kas,
+                    $_POST['tgl_jual'],
+                    $uraian,
+                    $_POST['total_jual'],
+                    0,
+                    $saldo_baru
+                ]);
+
             $_SESSION['message'] = 'Penjualan berhasil diupdate.';
         }
 
@@ -141,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $pdo->rollBack();
         $_SESSION['error'] = 'Transaksi Gagal: ' . $e->getMessage();
     }
-    
+
     header('Location: sales_management.php');
     exit;
 }
@@ -178,6 +224,7 @@ $today = date('Y-m-d');
 ?>
 
 <!-- ===== BAGIAN 3: KODE HTML & JAVASCRIPT ===== -->
+
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -256,7 +303,7 @@ $today = date('Y-m-d');
                         </tbody>
                     </table>
                 </div>
-                
+
                 <!-- Pagination -->
                 <div class="flex justify-between items-center mt-4">
                     <span class="text-sm text-gray-700">
@@ -362,7 +409,11 @@ $today = date('Y-m-d');
     const modal = document.getElementById('sale-modal');
     const form = document.getElementById('sale-form');
     const itemList = document.getElementById('item-list');
-    const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
+    const currencyFormatter = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    });
     let itemIndex = 0;
     const tempSaleId = '<?php echo htmlspecialchars($_SESSION['temp_sale_id']); ?>';
 

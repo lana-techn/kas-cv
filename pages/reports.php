@@ -140,24 +140,41 @@ if ($start_date > $end_date) $start_date = $end_date;
                             $total_column = 'total';
                             break;
                         case 'buku_besar':
-                            // 1. Hitung Saldo Awal (semua transaksi sebelum start_date)
-                            $stmt_saldo_awal = $pdo->prepare("
-                                SELECT 
-                                    (SELECT COALESCE(SUM(total), 0) FROM penerimaan_kas WHERE tgl_terima_kas < ?) - 
-                                    (SELECT COALESCE(SUM(total), 0) FROM pengeluaran_kas WHERE tgl_pengeluaran_kas < ?) 
-                                as saldo_awal
-                            ");
-                            $stmt_saldo_awal->execute([$start_date, $start_date]);
-                            $saldo_awal = $stmt_saldo_awal->fetchColumn();
+                            // Cek apakah ada data dalam tabel kas
+                            $check_kas = $pdo->query("SELECT COUNT(*) FROM kas")->fetchColumn();
 
-                            // 2. Query untuk transaksi pada periode yang dipilih
-                            $query = "
-                                (SELECT tgl_terima_kas as tanggal, uraian, total as debit, 0 as kredit FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ?)
-                                UNION ALL
-                                (SELECT tgl_pengeluaran_kas as tanggal, uraian, 0 as debit, total as kredit FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ?)
-                                ORDER BY tanggal ASC
-                            ";
-                            $params = [$start_date, $end_date, $start_date, $end_date];
+                            if ($check_kas > 0) {
+                                // Jika ada data dalam tabel kas, gunakan itu untuk buku besar
+
+                                // 1. Cari saldo awal (saldo terakhir sebelum start_date)
+                                $stmt_saldo_awal = $pdo->prepare("SELECT COALESCE(MAX(saldo), 0) FROM kas WHERE tanggal < ?");
+                                $stmt_saldo_awal->execute([$start_date]);
+                                $saldo_awal = $stmt_saldo_awal->fetchColumn();
+
+                                // 2. Ambil transaksi dari tabel kas untuk periode yang dipilih
+                                $query = "SELECT tanggal, keterangan as uraian, debit, kredit, saldo FROM kas WHERE tanggal BETWEEN ? AND ? ORDER BY tanggal ASC, id_kas ASC";
+                                $params = [$start_date, $end_date];
+                            } else {
+                                // Fallback ke penerimaan_kas dan pengeluaran_kas jika kas kosong
+                                // 1. Hitung Saldo Awal (semua transaksi sebelum start_date)
+                                $stmt_saldo_awal = $pdo->prepare("
+                                    SELECT 
+                                        (SELECT COALESCE(SUM(total), 0) FROM penerimaan_kas WHERE tgl_terima_kas < ?) - 
+                                        (SELECT COALESCE(SUM(total), 0) FROM pengeluaran_kas WHERE tgl_pengeluaran_kas < ?) 
+                                    as saldo_awal
+                                ");
+                                $stmt_saldo_awal->execute([$start_date, $start_date]);
+                                $saldo_awal = $stmt_saldo_awal->fetchColumn();
+
+                                // 2. Query untuk transaksi pada periode yang dipilih
+                                $query = "
+                                    (SELECT tgl_terima_kas as tanggal, uraian, total as debit, 0 as kredit FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ?)
+                                    UNION ALL
+                                    (SELECT tgl_pengeluaran_kas as tanggal, uraian, 0 as debit, total as kredit FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ?)
+                                    ORDER BY tanggal ASC
+                                ";
+                                $params = [$start_date, $end_date, $start_date, $end_date];
+                            }
 
                             // 3. Definisikan header dan kolom baru sesuai gambar
                             $headers = ['No.', 'Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo'];
