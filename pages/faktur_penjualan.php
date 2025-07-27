@@ -104,9 +104,9 @@ $items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <?php foreach ($items as $item): ?>
+                        <?php $no=1; foreach ($items as $item): ?>
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?php $no = 1;echo $no++; ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?php echo $no++; ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($item['kd_barang']); ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($item['nama_barang']); ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right"><?php echo formatCurrency($item['harga_jual']); ?></td>
