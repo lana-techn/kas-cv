@@ -18,6 +18,7 @@ if (!isset($pageTitle)) {
 }
 ?>
 <!DOCTYPE html>
+<!-- Warna full ubah disini -->
 <html lang="id" class="h-full bg-gray-50">
 <head>
     <meta charset="UTF-8">
@@ -117,7 +118,7 @@ if (!isset($pageTitle)) {
                                 </button>
                                 
                                 <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5">
-                                    <a href="/kas-cv/auth/logout.php" class="block px-3 py-1 text-sm leading-6 text-gray-900 hover:bg-gray-50">Logout</a>
+                                    <a href="../auth/logout.php" class="block px-3 py-1 text-sm leading-6 text-gray-900 hover:bg-gray-50">Logout</a>
                                 </div>
                             </div>
                         </div>
