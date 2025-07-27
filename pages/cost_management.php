@@ -32,8 +32,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->execute([$id_biaya, $_POST['nama_biaya'], $_POST['tgl_biaya'], $_POST['total']]);
 
             // Catat di pengeluaran kas
+            $id_pengeluaran_kas = generateId('PKS');
+            $uraian = 'Biaya Operasional: ' . $_POST['nama_biaya'];
             $stmt = $pdo->prepare("INSERT INTO pengeluaran_kas (id_pengeluaran_kas, id_biaya, tgl_pengeluaran_kas, uraian, total) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([generateId('PKS'), $id_biaya, $_POST['tgl_biaya'], 'Biaya Operasional: ' . $_POST['nama_biaya'], $_POST['total']]);
+            $stmt->execute([$id_pengeluaran_kas, $id_biaya, $_POST['tgl_biaya'], $uraian, $_POST['total']]);
+
+            // Update tabel kas
+            // Cek saldo terakhir
+            $stmt_saldo = $pdo->query("SELECT COALESCE(MAX(saldo), 0) FROM kas");
+            $saldo_terakhir = $stmt_saldo->fetchColumn();
+            $saldo_baru = $saldo_terakhir - $_POST['total'];
+
+            // Catat ke buku kas
+            $pdo->prepare("INSERT INTO kas (id_kas, id_pengeluaran_kas, tanggal, keterangan, debit, kredit, saldo) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                ->execute([
+                    generateId('KAS'),
+                    $id_pengeluaran_kas,
+                    $_POST['tgl_biaya'],
+                    $uraian,
+                    0,
+                    $_POST['total'],
+                    $saldo_baru
+                ]);
 
             $message = 'Biaya berhasil ditambahkan dan dicatat di kas keluar.';
         } elseif ($_POST['action'] === 'edit') {
