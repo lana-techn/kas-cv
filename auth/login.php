@@ -9,13 +9,13 @@ if (isset($_SESSION['user'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'];
-    $password = md5($_POST['password']); 
+    $password = md5($_POST['password']);
 
-    $stmt = $pdo->prepare("SELECT * FROM user WHERE username = ? AND password = ?");
-    $stmt->execute([$username, $password]);
+    $stmt = $pdo->prepare("SELECT * FROM user WHERE username = ?");
+    $stmt->execute([$username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user) {
+    if ($user && password_verify($_POST['password'], $user['password'])) {
         $_SESSION['user'] = $user;
         header('Location: ./pages/dashboard.php');
         exit;
@@ -26,38 +26,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - CV. Karya Wahana Sentosa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            animation: {
-              'gradient-x': 'gradient-x 15s ease infinite',
-            },
-            keyframes: {
-              'gradient-x': {
-                '0%, 100%': { 'background-position': '0% 50%' },
-                '50%': { 'background-position': '100% 50%' },
-              },
-            },
-            backgroundSize: {
-              '400': '400% 400%',
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'gradient-x': 'gradient-x 15s ease infinite',
+                    },
+                    keyframes: {
+                        'gradient-x': {
+                            '0%, 100%': {
+                                'background-position': '0% 50%'
+                            },
+                            '50%': {
+                                'background-position': '100% 50%'
+                            },
+                        },
+                    },
+                    backgroundSize: {
+                        '400': '400% 400%',
+                    }
+                }
             }
-          }
         }
-      }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body class="min-h-screen flex items-center justify-center p-4 font-[Poppins] bg-[url('assets/images/bg.jpg')] bg-cover bg-center bg-no-repeat">
 
     <div class="w-full max-w-md p-8 space-y-8 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 text-white shadow-2xl">
-        
+
         <div class="text-center">
             <h1 class="text-3xl font-bold">CV. Karya Wahana Sentosa</h1>
         </div>
@@ -102,11 +108,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
 
         <p class="text-center text-sm text-gray-300">
-            Belum punya akun?
-            <a href="#" class="font-medium text-indigo-300 hover:text-indigo-200">Hubungi Administrator</a>
+            <!-- Belum punya akun? -->
+            <!-- <a href="#" class="font-medium text-indigo-300 hover:text-indigo-200">Hubungi Administrator</a> -->
         </p>
 
     </div>
 
 </body>
+
 </html>
