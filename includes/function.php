@@ -3,10 +3,10 @@
 /**
  * Format angka menjadi format mata uang Rupiah (IDR).
  * Fungsi ini sudah diperbarui untuk menangani input yang mungkin sudah terformat,
- * sehingga mencegah error "double formatting".
+ * sehingga mencegah error "double formatting" dan menangani angka negatif.
  *
  * @param mixed $num Angka yang akan diformat.
- * @return string Angka dalam format mata uang (e.g., "Rp 100.000").
+ * @return string Angka dalam format mata uang (e.g., "Rp 100.000" atau "Rp -100.000").
  */
 function formatCurrency($num)
 {
@@ -15,15 +15,25 @@ function formatCurrency($num)
         return 'Rp 0';
     }
 
-    // 2. Bersihkan input: Hapus semua karakter kecuali angka.
-    // Ini akan mengubah "Rp 100.000" menjadi "100000".
+    // 2. Cek apakah ini angka negatif
+    $is_negative = false;
+    if (is_numeric($num) && $num < 0) {
+        $is_negative = true;
+        $num = abs($num); // Mengubah ke nilai positif dulu untuk pemrosesan
+    } elseif (is_string($num) && strpos($num, '-') === 0) {
+        $is_negative = true;
+        $num = substr($num, 1); // Menghapus tanda minus di awal string
+    }
+
+    // 3. Bersihkan input: Hapus semua karakter kecuali angka
     $cleaned_num = preg_replace('/[^0-9]/', '', $num);
 
-    // 3. Konversi string angka yang sudah bersih menjadi float/integer.
+    // 4. Konversi string angka yang sudah bersih menjadi float/integer
     $numeric_val = (float) $cleaned_num;
 
-    // 4. Format angka yang sudah bersih menggunakan number_format().
-    return 'Rp ' . number_format($numeric_val, 0, ',', '.');
+    // 5. Format angka dan tambahkan tanda minus jika negatif
+    $prefix = $is_negative ? 'Rp -' : 'Rp ';
+    return $prefix . number_format($numeric_val, 0, ',', '.');
 }
 
 /**
