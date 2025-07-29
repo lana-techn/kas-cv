@@ -199,10 +199,8 @@ if ($start_date > $end_date) $start_date = $end_date;
                     // --- Render Isi Tabel ---
                     if ($report_type == 'buku_besar') {
                         echo '<tbody class="bg-white">';
-                        // Baris untuk Saldo Awal
-                        echo '<tr class="bg-gray-50 font-semibold"><td colspan="5" class="px-4 py-2 border text-right">Saldo Awal</td><td class="px-4 py-2 border text-right">' . formatCurrency($saldo_awal) . '</td></tr>';
 
-                        $saldo_berjalan = $saldo_awal;
+                        $saldo_berjalan = 0; // Mulai dari 0 untuk setiap periode
                         if (empty($data)) {
                             echo "<tr><td colspan='6' class='px-6 py-12 text-center text-gray-500 border'>Tidak ada transaksi pada periode ini.</td></tr>";
                         } else {
@@ -219,8 +217,8 @@ if ($start_date > $end_date) $start_date = $end_date;
                             }
                         }
                         echo '</tbody>';
-                        // Footer untuk Saldo Akhir
-                        echo '<tfoot class="bg-gray-100 font-bold"><tr><td colspan="5" class="px-4 py-3 text-right border">Saldo Akhir</td><td class="px-4 py-3 text-right border">' . formatCurrency($saldo_berjalan) . '</td></tr></tfoot>';
+                        // Footer untuk Saldo Akhir Periode
+                        echo '<tfoot class="bg-gray-100 font-bold"><tr><td colspan="5" class="px-4 py-3 text-right border">Saldo Akhir Periode</td><td class="px-4 py-3 text-right border">' . formatCurrency($saldo_berjalan) . '</td></tr></tfoot>';
                     } else { // Untuk laporan selain buku besar
                         echo '<tbody class="bg-white">';
                         if (empty($data)) {

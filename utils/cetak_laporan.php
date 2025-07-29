@@ -175,12 +175,8 @@ if (!empty($query)) {
                             <?php
                             $grand_total = 0;
                             if ($report_type == 'buku_besar'):
-                                $saldo_berjalan = $saldo_awal;
+                                $saldo_berjalan = 0; // Mulai dari 0 untuk setiap periode
                             ?>
-                                <tr class="font-semibold bg-gray-50">
-                                    <td colspan="<?php echo count($headers) - 1; ?>" class="px-4 py-2 text-right">Saldo Awal</td>
-                                    <td class="px-4 py-2 text-right"><?php echo formatCurrency($saldo_awal); ?></td>
-                                </tr>
                                 <?php foreach ($data as $row):
                                     $saldo_berjalan += $row['debit'] - $row['kredit'];
                                 ?>
@@ -216,7 +212,7 @@ if (!empty($query)) {
                         <tfoot class="bg-gray-100 font-bold">
                             <?php if ($report_type == 'buku_besar'): ?>
                                 <tr>
-                                    <td colspan="<?php echo count($headers) - 1; ?>" class="px-4 py-2 text-right">Saldo Akhir</td>
+                                    <td colspan="<?php echo count($headers) - 1; ?>" class="px-4 py-2 text-right">Saldo Akhir Periode</td>
                                     <td class="px-4 py-2 text-right"><?php echo formatCurrency($saldo_berjalan); ?></td>
                                 </tr>
                             <?php elseif ($total_column): ?>
@@ -231,6 +227,11 @@ if (!empty($query)) {
                                     <?php if (in_array($report_type, ['penjualan', 'pembelian'])): ?>
                                         <td colspan="2"></td>
                                     <?php endif; ?>
+                                </tr>
+                                <td class="px-4 py-2 text-right"><?php echo formatCurrency($grand_total); ?></td>
+                                <?php if (in_array($report_type, ['penjualan', 'pembelian'])): ?>
+                                    <td colspan="2"></td>
+                                <?php endif; ?>
                                 </tr>
                             <?php endif; ?>
                         </tfoot>

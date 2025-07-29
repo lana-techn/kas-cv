@@ -62,7 +62,13 @@ switch ($report_type) {
             // Jika ada data dalam tabel kas, gunakan itu untuk buku besar
 
             // 1. Cari saldo awal (saldo terakhir sebelum start_date)
-            $stmt_saldo_awal = $pdo->prepare("SELECT COALESCE(MAX(saldo), 0) FROM kas WHERE tanggal < ?");
+            $stmt_saldo_awal = $pdo->prepare("
+                SELECT COALESCE(saldo, 0) 
+                FROM kas 
+                WHERE tanggal < ? 
+                ORDER BY tanggal DESC, id_kas DESC 
+                LIMIT 1
+            ");
             $stmt_saldo_awal->execute([$start_date]);
             $saldo_awal = $stmt_saldo_awal->fetchColumn();
 
@@ -115,8 +121,7 @@ if (empty($data) && $report_type != 'buku_besar') {
 
     // Logika Khusus untuk Buku Besar
     if ($report_type === 'buku_besar') {
-        echo '<tr><td colspan="' . (count($headers) - 1) . '" style="text-align:right; font-weight:bold;">Saldo Awal</td><td style="mso-number-format:\#\,\#\#0; font-weight:bold;">' . $saldo_awal . '</td></tr>';
-        $saldo_berjalan = $saldo_awal;
+        $saldo_berjalan = 0; // Mulai dari 0 untuk setiap periode
         foreach ($data as $index => $row) {
             $saldo_berjalan += $row['debit'] - $row['kredit'];
             echo '<tr>';
@@ -128,8 +133,8 @@ if (empty($data) && $report_type != 'buku_besar') {
             echo '<td style="mso-number-format:\#\,\#\#0; font-weight:bold;">' . $saldo_berjalan . '</td>';
             echo '</tr>';
         }
-        // Footer untuk Saldo Akhir
-        echo '<tfoot><tr><td colspan="' . (count($headers) - 1) . '" style="text-align:right; font-weight:bold;">Saldo Akhir</td><td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . $saldo_berjalan . '</td></tr></tfoot>';
+        // Footer untuk Saldo Akhir Periode
+        echo '<tfoot><tr><td colspan="' . (count($headers) - 1) . '" style="text-align:right; font-weight:bold;">Saldo Akhir Periode</td><td style="font-weight:bold; mso-number-format:\#\,\#\#0;">' . $saldo_berjalan . '</td></tr></tfoot>';
     } else { // Untuk Laporan Lainnya
         foreach ($data as $index => $row) {
             echo '<tr>';

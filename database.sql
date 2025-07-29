@@ -185,46 +185,4 @@ INSERT INTO detail_produksi (id_detproduksi, id_produksi, kd_bahan, satuan, jum_
 ('DPR004', 'PRD003', 'BHN001', 'Meter', 9);
 
 
--- Insert dummy purchase records
-INSERT INTO pembelian (id_pembelian, tgl_beli, total_beli, id_supplier, bayar, kembali) VALUES
-('PBL001', '2025-06-28', 5000000, 'SUP001', 5000000, '0'),
-('PBL002', '2025-07-05', 3500000, 'SUP002', 4000000, '500000');
-
--- Insert dummy purchase details
-INSERT INTO detail_pembelian (id_detail_beli, id_pembelian, kd_bahan, harga_beli, qty, subtotal) VALUES
-('DPB001', 'PBL001', 'BHN001', 250000, 20, '5000000'),
-('DPB002', 'PBL002', 'BHN002', 70000, 50, '3500000');
-
--- Insert dummy sales records
-INSERT INTO penjualan (id_penjualan, tgl_jual, total_jual, bayar, kembali) VALUES
-('PJL001', '2025-07-15', 8000000, 8000000, '0'),
-('PJL002', '2025-07-20', 4500000, 5000000, '500000');
-
--- Insert dummy sales details
-INSERT INTO detail_penjualan (id_detail_jual, id_penjualan, kd_barang, harga_jual, qty, subtotal) VALUES
-('DPJ001', 'PJL001', 'BRG001', 2000000, 4, '8000000'),
-('DPJ002', 'PJL002', 'BRG002', 450000, 10, '4500000');
-
--- Insert dummy expense records
-INSERT INTO biaya (id_biaya, nama_biaya, tgl_biaya, total) VALUES
-('BYA001', 'Biaya Listrik Juli 2025', '2025-07-10', 1500000),
-('BYA002', 'Biaya Transportasi', '2025-07-15', 1000000);
-
--- Insert dummy cash receipts
-INSERT INTO penerimaan_kas (id_penerimaan_kas, id_penjualan, tgl_terima_kas, uraian, total) VALUES
-('TRM001', 'PJL001', '2025-07-15', 'Penerimaan Penjualan Meja Makan', '8000000'),
-('TRM002', 'PJL002', '2025-07-20', 'Penerimaan Penjualan Kursi Tamu', '4500000');
-
--- Insert dummy cash expenditures
-INSERT INTO pengeluaran_kas (id_pengeluaran_kas, id_pembelian, id_biaya, tgl_pengeluaran_kas, uraian, total) VALUES
-('KLR001', 'PBL001', NULL, '2025-06-28', 'Pembayaran Pembelian Kayu', '5000000'),
-('KLR002', NULL, 'BYA001', '2025-07-10', 'Pembayaran Listrik', '1500000');
-
--- Insert dummy cash records
-INSERT INTO kas (id_kas, id_penerimaan_kas, id_pengeluaran_kas, tanggal, keterangan, debit, kredit, saldo) VALUES
-('KAS001', 'TRM001', NULL, '2025-07-15', 'Penerimaan dari penjualan', 8000000, 0, 8000000),
-('KAS002', NULL, 'KLR001', '2025-06-28', 'Pengeluaran untuk pembelian', 0, 5000000, 3000000),
-('KAS003', 'TRM002', NULL, '2025-07-20', 'Penerimaan dari penjualan', 4500000, 0, 7500000),
-('KAS004', NULL, 'KLR002', '2025-07-10', 'Pengeluaran untuk biaya', 0, 1500000, 6000000);
-
 
