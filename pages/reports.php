@@ -4,7 +4,7 @@ require_once '../includes/function.php';
 require_once '../includes/header.php';
 
 // Cek hak akses
-if (!isset($_SESSION['user']) || $_SESSION['user']['level'] !== 'pemilik' && $_SESSION['user']['level'] !== 'pegawai') {
+if (!isset($_SESSION['user']) || $_SESSION['user']['level'] !== 'pemilik' && $_SESSION['user']['level'] !== 'Pegawai Operasional') {
     header('Location: dashboard.php');
     exit;
 }
@@ -15,8 +15,8 @@ $today = date('Y-m-d');
 $default_start_date = date('Y-m-d', strtotime('-29 days'));
 $user_level = $_SESSION['user']['level'] ?? '';
 $report_type = $_POST['report_type'] ?? 'penjualan';
-// Jika bukan pemilik, paksa report_type selain buku_besar
-if ($report_type === 'buku_besar' && $user_level !== 'pemilik') {
+// Jika bukan pemilik, paksa report_type selain buku_besar atau jurnal
+if (($report_type === 'buku_besar' || $report_type === 'jurnal') && $user_level !== 'pemilik') {
     $report_type = 'penjualan';
 }
 $start_date = $_POST['start_date'] ?? $default_start_date;
@@ -54,6 +54,7 @@ if ($start_date > $end_date) $start_date = $end_date;
                             <option value="penerimaan_kas" <?php if ($report_type == 'penerimaan_kas') echo 'selected'; ?>>Laporan Penerimaan Kas</option>
                             <option value="pengeluaran_kas" <?php if ($report_type == 'pengeluaran_kas') echo 'selected'; ?>>Laporan Pengeluaran Kas</option>
                             <?php if ($user_level === 'pemilik'): ?>
+                                <option value="jurnal" <?php if ($report_type == 'jurnal') echo 'selected'; ?>>Laporan Jurnal Umum</option>
                                 <option value="buku_besar" <?php if ($report_type == 'buku_besar') echo 'selected'; ?>>Laporan Buku Besar</option>
                             <?php endif; ?>
                         </select>
@@ -78,7 +79,15 @@ if ($start_date > $end_date) $start_date = $end_date;
 
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4">
-                    <h3 class="text-xl font-semibold">Laporan <?php echo ucwords(str_replace('_', ' ', $report_type)); ?></h3>
+                    <h3 class="text-xl font-semibold">
+                        <?php
+                        if ($report_type == 'jurnal') {
+                            echo 'Laporan Jurnal Umum';
+                        } else {
+                            echo 'Laporan ' . ucwords(str_replace('_', ' ', $report_type));
+                        }
+                        ?>
+                    </h3>
                     <div class="flex justify-between gap-4 flex-wrap">
                         <a href="../utils/export_laporan.php?type=<?php echo $report_type; ?>&start=<?php echo $start_date; ?>&end=<?php echo $end_date; ?>" class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-center">
                             <i class="fas fa-file-excel mr-2"></i>Ekspor
@@ -139,46 +148,277 @@ if ($start_date > $end_date) $start_date = $end_date;
                             $columns = ['tgl_pengeluaran_kas', 'uraian', 'total'];
                             $total_column = 'total';
                             break;
+                        case 'jurnal':
+                            // Laporan jurnal umum: menggabungkan kas masuk dan kas keluar sebagai jurnal
+                            $query = "
+                                -- Transaksi Pembelian (Debit: Pembelian Bahan, Kredit: Kas)
+                                SELECT 
+                                    p.tgl_beli as tanggal,
+                                    CONCAT('Pembelian Bahan ', SUBSTRING(dp.kd_bahan, 1, 10)) as keterangan,
+                                    p.total_beli as debit,
+                                    0 as kredit
+                                FROM 
+                                    pembelian p
+                                JOIN 
+                                    detail_pembelian dp ON p.id_pembelian = dp.id_pembelian
+                                WHERE 
+                                    p.tgl_beli BETWEEN ? AND ?
+                                GROUP BY 
+                                    p.id_pembelian
+                                
+                                UNION ALL
+                                
+                                SELECT 
+                                    p.tgl_beli as tanggal,
+                                    '     Kas' as keterangan,
+                                    0 as debit,
+                                    p.total_beli as kredit
+                                FROM 
+                                    pembelian p
+                                WHERE 
+                                    p.tgl_beli BETWEEN ? AND ?
+                                
+                                UNION ALL
+                                
+                                SELECT 
+                                    p.tgl_beli as tanggal,
+                                    CONCAT('     (Pembelian Bahan Baku - No.Transaksi: ', p.id_pembelian, ')') as keterangan,
+                                    0 as debit,
+                                    0 as kredit
+                                FROM 
+                                    pembelian p
+                                WHERE 
+                                    p.tgl_beli BETWEEN ? AND ?
+                                GROUP BY 
+                                    p.id_pembelian
+                                
+                                UNION ALL
+                                
+                                -- Transaksi Biaya Operasional (Debit: Biaya Operasional, Kredit: Kas)
+                                SELECT 
+                                    b.tgl_biaya as tanggal,
+                                    CONCAT('Biaya Operasional: ', b.nama_biaya) as keterangan,
+                                    b.total as debit,
+                                    0 as kredit
+                                FROM 
+                                    biaya b
+                                WHERE 
+                                    b.tgl_biaya BETWEEN ? AND ?
+                                
+                                UNION ALL
+                                
+                                SELECT 
+                                    b.tgl_biaya as tanggal,
+                                    '     Kas' as keterangan,
+                                    0 as debit,
+                                    b.total as kredit
+                                FROM 
+                                    biaya b
+                                WHERE 
+                                    b.tgl_biaya BETWEEN ? AND ?
+                                
+                                UNION ALL
+                                
+                                SELECT 
+                                    b.tgl_biaya as tanggal,
+                                    CONCAT('     (Biaya Operasional untuk ', b.nama_biaya, ')') as keterangan,
+                                    0 as debit,
+                                    0 as kredit
+                                FROM 
+                                    biaya b
+                                WHERE 
+                                    b.tgl_biaya BETWEEN ? AND ?
+                                
+                                UNION ALL
+                                
+                                -- Transaksi Penjualan (Debit: Kas, Kredit: Penjualan Produk)
+                                SELECT 
+                                    p.tgl_jual as tanggal,
+                                    'Kas' as keterangan,
+                                    p.total_jual as debit,
+                                    0 as kredit
+                                FROM 
+                                    penjualan p
+                                WHERE 
+                                    p.tgl_jual BETWEEN ? AND ?
+                                
+                                UNION ALL
+                                
+                                SELECT 
+                                    p.tgl_jual as tanggal,
+                                    CONCAT('Penjualan Produk ', SUBSTRING(dp.kd_barang, 1, 10)) as keterangan,
+                                    0 as debit,
+                                    p.total_jual as kredit
+                                FROM 
+                                    penjualan p
+                                JOIN 
+                                    detail_penjualan dp ON p.id_penjualan = dp.id_penjualan
+                                WHERE 
+                                    p.tgl_jual BETWEEN ? AND ?
+                                GROUP BY 
+                                    p.id_penjualan
+                                    
+                                UNION ALL
+                                
+                                SELECT 
+                                    p.tgl_jual as tanggal,
+                                    CONCAT('     (Penerimaan dari Penjualan No.', p.id_penjualan, ')') as keterangan,
+                                    0 as debit,
+                                    0 as kredit
+                                FROM 
+                                    penjualan p
+                                WHERE 
+                                    p.tgl_jual BETWEEN ? AND ?
+                                
+                                ORDER BY tanggal ASC, 
+                                         CASE 
+                                             WHEN keterangan LIKE '%(%' THEN 3  -- Description rows at the bottom
+                                             WHEN debit > 0 THEN 1              -- Debit rows first
+                                             ELSE 2                             -- Credit rows second
+                                         END ASC
+                            ";
+                            $params = [
+                                $start_date,
+                                $end_date, // First query - Pembelian Bahan (debit)
+                                $start_date,
+                                $end_date, // Second query - Kas for pembelian (kredit)
+                                $start_date,
+                                $end_date, // Third query - Pembelian description row
+                                $start_date,
+                                $end_date, // Fourth query - Biaya Operasional (debit)
+                                $start_date,
+                                $end_date, // Fifth query - Kas for biaya (kredit)
+                                $start_date,
+                                $end_date, // Sixth query - Biaya description row
+                                $start_date,
+                                $end_date, // Seventh query - Kas for penjualan (debit)
+                                $start_date,
+                                $end_date, // Eighth query - Penjualan Produk (kredit)
+                                $start_date,
+                                $end_date  // Ninth query - Penjualan description row
+                            ];
+
+                            // Header tabel disesuaikan dengan gambar
+                            $headers = ['No', 'Tanggal', 'Keterangan', 'Debit', 'Kredit'];
+                            $columns = ['tanggal', 'keterangan', 'debit', 'kredit'];
+                            break;
                         case 'buku_besar':
-                            // Cek apakah ada data dalam tabel kas
-                            $check_kas = $pdo->query("SELECT COUNT(*) FROM kas")->fetchColumn();
+                            // Tampilan buku besar berdasarkan kategori akun
+                            // Untuk laporan buku besar, kita akan menggunakan pendekatan berbeda
+                            // Data tidak langsung diambil dari database, tetapi dikelompokkan berdasarkan kategori akun
 
-                            if ($check_kas > 0) {
-                                // Jika ada data dalam tabel kas, gunakan itu untuk buku besar
+                            // 1. Dapatkan semua transaksi dari jurnal
+                            $query = "
+                                -- Transaksi Pembelian (Debit: Pembelian Bahan, Kredit: Kas)
+                                SELECT 
+                                    p.tgl_beli as tanggal,
+                                    'Pembelian' as akun,
+                                    CONCAT('Pembelian Bahan ', SUBSTRING(dp.kd_bahan, 1, 10), ' (No.', p.id_pembelian, ')') as keterangan,
+                                    p.total_beli as debit,
+                                    0 as kredit
+                                FROM 
+                                    pembelian p
+                                JOIN 
+                                    detail_pembelian dp ON p.id_pembelian = dp.id_pembelian
+                                WHERE 
+                                    p.tgl_beli BETWEEN ? AND ?
+                                GROUP BY 
+                                    p.id_pembelian
+                                
+                                UNION ALL
+                                
+                                SELECT 
+                                    p.tgl_beli as tanggal,
+                                    'Kas' as akun,
+                                    CONCAT('Pembelian Bahan (No.', p.id_pembelian, ')') as keterangan,
+                                    0 as debit,
+                                    p.total_beli as kredit
+                                FROM 
+                                    pembelian p
+                                WHERE 
+                                    p.tgl_beli BETWEEN ? AND ?
+                                
+                                UNION ALL
+                                
+                                -- Transaksi Biaya Operasional (Debit: Biaya, Kredit: Kas)
+                                SELECT 
+                                    b.tgl_biaya as tanggal,
+                                    CONCAT('Biaya ', b.nama_biaya) as akun,
+                                    b.nama_biaya as keterangan,
+                                    b.total as debit,
+                                    0 as kredit
+                                FROM 
+                                    biaya b
+                                WHERE 
+                                    b.tgl_biaya BETWEEN ? AND ?
+                                
+                                UNION ALL
+                                
+                                SELECT 
+                                    b.tgl_biaya as tanggal,
+                                    'Kas' as akun,
+                                    CONCAT('Biaya ', b.nama_biaya) as keterangan,
+                                    0 as debit,
+                                    b.total as kredit
+                                FROM 
+                                    biaya b
+                                WHERE 
+                                    b.tgl_biaya BETWEEN ? AND ?
+                                
+                                UNION ALL
+                                
+                                -- Transaksi Penjualan (Debit: Kas, Kredit: Penjualan Produk)
+                                SELECT 
+                                    p.tgl_jual as tanggal,
+                                    'Kas' as akun,
+                                    CONCAT('Penjualan Produk (No.', p.id_penjualan, ')') as keterangan,
+                                    p.total_jual as debit,
+                                    0 as kredit
+                                FROM 
+                                    penjualan p
+                                WHERE 
+                                    p.tgl_jual BETWEEN ? AND ?
+                                
+                                UNION ALL
+                                
+                                SELECT 
+                                    p.tgl_jual as tanggal,
+                                    'Penjualan' as akun,
+                                    CONCAT('Penjualan Produk ', SUBSTRING(dp.kd_barang, 1, 10), ' (No.', p.id_penjualan, ')') as keterangan,
+                                    0 as debit,
+                                    p.total_jual as kredit
+                                FROM 
+                                    penjualan p
+                                JOIN 
+                                    detail_penjualan dp ON p.id_penjualan = dp.id_penjualan
+                                WHERE 
+                                    p.tgl_jual BETWEEN ? AND ?
+                                GROUP BY 
+                                    p.id_penjualan
+                                
+                                ORDER BY akun, tanggal ASC
+                            ";
 
-                                // 1. Cari saldo awal (saldo terakhir sebelum start_date)
-                                $stmt_saldo_awal = $pdo->prepare("SELECT COALESCE(MAX(saldo), 0) FROM kas WHERE tanggal < ?");
-                                $stmt_saldo_awal->execute([$start_date]);
-                                $saldo_awal = $stmt_saldo_awal->fetchColumn();
+                            $params = [
+                                $start_date,
+                                $end_date, // Pembelian Bahan (debit)
+                                $start_date,
+                                $end_date, // Kas for pembelian (kredit)
+                                $start_date,
+                                $end_date, // Biaya Operasional (debit)
+                                $start_date,
+                                $end_date, // Kas for biaya (kredit)
+                                $start_date,
+                                $end_date, // Kas for penjualan (debit)
+                                $start_date,
+                                $end_date  // Penjualan Produk (kredit)
+                            ];
 
-                                // 2. Ambil transaksi dari tabel kas untuk periode yang dipilih
-                                $query = "SELECT tanggal, keterangan as uraian, debit, kredit, saldo FROM kas WHERE tanggal BETWEEN ? AND ? ORDER BY tanggal ASC, id_kas ASC";
-                                $params = [$start_date, $end_date];
-                            } else {
-                                // Fallback ke penerimaan_kas dan pengeluaran_kas jika kas kosong
-                                // 1. Hitung Saldo Awal (semua transaksi sebelum start_date)
-                                $stmt_saldo_awal = $pdo->prepare("
-                                    SELECT 
-                                        (SELECT COALESCE(SUM(total), 0) FROM penerimaan_kas WHERE tgl_terima_kas < ?) - 
-                                        (SELECT COALESCE(SUM(total), 0) FROM pengeluaran_kas WHERE tgl_pengeluaran_kas < ?) 
-                                    as saldo_awal
-                                ");
-                                $stmt_saldo_awal->execute([$start_date, $start_date]);
-                                $saldo_awal = $stmt_saldo_awal->fetchColumn();
-
-                                // 2. Query untuk transaksi pada periode yang dipilih
-                                $query = "
-                                    (SELECT tgl_terima_kas as tanggal, uraian, total as debit, 0 as kredit FROM penerimaan_kas WHERE tgl_terima_kas BETWEEN ? AND ?)
-                                    UNION ALL
-                                    (SELECT tgl_pengeluaran_kas as tanggal, uraian, 0 as debit, total as kredit FROM pengeluaran_kas WHERE tgl_pengeluaran_kas BETWEEN ? AND ?)
-                                    ORDER BY tanggal ASC
-                                ";
-                                $params = [$start_date, $end_date, $start_date, $end_date];
-                            }
-
-                            // 3. Definisikan header dan kolom baru sesuai gambar
-                            $headers = ['No.', 'Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo'];
-                            $columns = ['tanggal', 'uraian', 'debit', 'kredit']; // Kolom dari query
+                            // Meskipun kita membuat format khusus, tetap berikan header default
+                            // untuk menghindari error
+                            $render_special = true;
+                            $headers = ['Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo'];
+                            $columns = [];
                             break;
                     }
 
@@ -188,37 +428,215 @@ if ($start_date > $end_date) $start_date = $end_date;
 
                     // --- Render Tabel ---
                     echo '<table class="min-w-full responsive-table border border-gray-300">';
-                    echo '<thead><tr class="bg-gray-100">';
-                    foreach ($headers as $header) {
-                        $align = in_array($header, ['Debit', 'Kredit', 'Saldo', 'Jumlah (Rp)', 'Total', 'Bayar', 'Kembali']) ? 'text-right' : 'text-left';
-                        $width = ($header == 'No.') ? 'w-12' : '';
-                        echo "<th class='px-4 py-3 $align text-sm font-semibold text-gray-700 border $width'>$header</th>";
+                    if ($report_type != 'buku_besar') {
+                        echo '<thead><tr class="bg-gray-100">';
+                        foreach ($headers as $header) {
+                            $align = in_array($header, ['Debit', 'Kredit', 'Saldo', 'Jumlah (Rp)', 'Total', 'Bayar', 'Kembali']) ? 'text-right' : 'text-left';
+                            $width = ($header == 'No.') ? 'w-12' : '';
+                            echo "<th class='px-4 py-3 $align text-sm font-semibold text-gray-700 border $width'>$header</th>";
+                        }
+                        echo '</tr></thead>';
                     }
-                    echo '</tr></thead>';
 
                     // --- Render Isi Tabel ---
-                    if ($report_type == 'buku_besar') {
+                    if ($report_type == 'jurnal') {
                         echo '<tbody class="bg-white">';
 
-                        $saldo_berjalan = 0; // Mulai dari 0 untuk setiap periode
                         if (empty($data)) {
-                            echo "<tr><td colspan='6' class='px-6 py-12 text-center text-gray-500 border'>Tidak ada transaksi pada periode ini.</td></tr>";
+                            echo "<tr><td colspan='" . count($headers) . "' class='px-6 py-12 text-center text-gray-500 border'>Tidak ada transaksi pada periode ini.</td></tr>";
                         } else {
+                            $total_debit = 0;
+                            $total_kredit = 0;
+
+                            // Group transactions by date and type
+                            $grouped_transactions = [];
+                            $current_date = '';
+                            $entry_counter = 1;
+
+                            // First pass: group transactions by date and transaction type
+                            $last_date = null;
+                            $last_group_key = '';
+                            $groups = [];
+                            $current_group = null;
+
                             foreach ($data as $index => $row) {
-                                $saldo_berjalan += $row['debit'] - $row['kredit'];
-                                echo '<tr class="divide-x divide-gray-200">';
-                                echo "<td class='px-4 py-2 border text-center'>" . ($index + 1) . ".</td>";
-                                echo "<td class='px-4 py-2 border'>" . date('d M Y', strtotime($row['tanggal'])) . "</td>";
-                                echo "<td class='px-4 py-2 border'>" . htmlspecialchars($row['uraian']) . "</td>";
-                                echo "<td class='px-4 py-2 border text-right'>" . ($row['debit'] > 0 ? formatCurrency($row['debit']) : '-') . "</td>";
-                                echo "<td class='px-4 py-2 border text-right'>" . ($row['kredit'] > 0 ? formatCurrency($row['kredit']) : '-') . "</td>";
-                                echo "<td class='px-4 py-2 border text-right font-medium'>" . formatCurrency($saldo_berjalan) . "</td>";
+                                // For grouping transactions
+                                $transaction_date = $row['tanggal'];
+                                $is_debit = ($row['debit'] > 0);
+                                $transaction_type = '';
+
+                                // Determine transaction type for grouping
+                                if ($is_debit) {
+                                    if (strpos($row['keterangan'], 'Pembelian Bahan') !== false) {
+                                        $transaction_type = 'pembelian';
+                                    } else if (strpos($row['keterangan'], 'Biaya Operasional') !== false) {
+                                        $transaction_type = 'biaya';
+                                    } else if ($row['keterangan'] === 'Kas') {
+                                        $transaction_type = 'penjualan';
+                                    }
+
+                                    // Create a new transaction group
+                                    $group_key = $transaction_date . '_' . $transaction_type;
+                                    if ($group_key != $last_group_key) {
+                                        $current_group = [
+                                            'date' => $transaction_date,
+                                            'display_date' => date('d/m/Y', strtotime($transaction_date)),
+                                            'entries' => []
+                                        ];
+                                        $groups[$group_key] = $current_group;
+                                        $last_group_key = $group_key;
+                                    }
+                                }
+
+                                // Add this entry to the current group if exists
+                                if ($current_group !== null) {
+                                    $groups[$last_group_key]['entries'][] = $row;
+                                }
+                            }
+
+                            // Now display the grouped transactions
+                            foreach ($groups as $group) {
+                                $first_entry = true;
+
+                                foreach ($group['entries'] as $entry) {
+                                    $is_credit_entry = ($entry['kredit'] > 0);
+
+                                    echo '<tr class="divide-x divide-gray-200">';
+
+                                    // Show transaction number only once per transaction group
+                                    if ($first_entry) {
+                                        echo "<td class='px-4 py-2 border text-center'>" . $entry_counter++ . "</td>";
+                                    } else {
+                                        echo "<td class='px-4 py-2 border'></td>";
+                                    }
+
+                                    // Show date only once per transaction group
+                                    if ($first_entry) {
+                                        echo "<td class='px-4 py-2 border'>" . $group['display_date'] . "</td>";
+                                    } else {
+                                        echo "<td class='px-4 py-2 border'></td>";
+                                    }
+
+                                    // Show description with indent for credit entries
+                                    if ($is_credit_entry) {
+                                        echo "<td class='px-4 py-2 border'><span style='padding-left: 40px; display: inline-block;'>" . htmlspecialchars($entry['keterangan']) . "</span></td>";
+                                    } else {
+                                        echo "<td class='px-4 py-2 border'>" . htmlspecialchars($entry['keterangan']) . "</td>";
+                                    }
+
+                                    // Show debit and credit values
+                                    echo "<td class='px-4 py-2 border text-right'>" . ($entry['debit'] > 0 ? formatCurrency($entry['debit']) : '-') . "</td>";
+                                    echo "<td class='px-4 py-2 border text-right'>" . ($entry['kredit'] > 0 ? formatCurrency($entry['kredit']) : '-') . "</td>";
+                                    echo '</tr>';
+
+                                    // Update totals and flags
+                                    $total_debit += $entry['debit'];
+                                    $total_kredit += $entry['kredit'];
+                                    $first_entry = false;
+                                }
+                            }
+                        }
+
+                        echo '</tbody>';
+
+                        // Footer for journal totals
+                        if (!empty($data)) {
+                            echo '<tfoot class="bg-gray-100 font-bold">
+                                <tr>
+                                    <td colspan="3" class="px-4 py-3 text-right border">Total</td>
+                                    <td class="px-4 py-3 text-right border">' . formatCurrency($total_debit) . '</td>
+                                    <td class="px-4 py-3 text-right border">' . formatCurrency($total_kredit) . '</td>
+                                </tr>
+                            </tfoot>';
+                        }
+                    } elseif ($report_type == 'buku_besar') {
+                        // Special rendering for buku_besar
+                        echo '<tbody class="bg-white">';
+
+                        if (empty($data)) {
+                            echo "<tr><td colspan='5' class='px-6 py-12 text-center text-gray-500 border'>Tidak ada transaksi pada periode ini.</td></tr>";
+                        } else {
+                            // Group data by account
+                            $accounts = [];
+                            foreach ($data as $row) {
+                                if (!isset($accounts[$row['akun']])) {
+                                    $accounts[$row['akun']] = [
+                                        'transactions' => [],
+                                        'total_debit' => 0,
+                                        'total_kredit' => 0
+                                    ];
+                                }
+                                $accounts[$row['akun']]['transactions'][] = $row;
+                                $accounts[$row['akun']]['total_debit'] += $row['debit'];
+                                $accounts[$row['akun']]['total_kredit'] += $row['kredit'];
+                            }
+
+                            // Sort accounts - Kas first, then others
+                            uksort($accounts, function ($a, $b) {
+                                if ($a === 'Kas') return -1;
+                                if ($b === 'Kas') return 1;
+                                if (strpos($a, 'Biaya') === 0 && strpos($b, 'Biaya') !== 0) return -1;
+                                if (strpos($a, 'Biaya') !== 0 && strpos($b, 'Biaya') === 0) return 1;
+                                return strcmp($a, $b);
+                            });
+
+                            // Now render each account
+                            foreach ($accounts as $account => $account_data) {
+                                $saldo = $account_data['total_debit'] - $account_data['total_kredit'];
+                                $is_debit = $saldo >= 0;
+
+                                // Account header
+                                echo '<tr class="bg-gray-100 font-bold">';
+                                echo '<td colspan="5" class="px-4 py-3 text-center border-t-2 border-b-2 border-gray-800">' . htmlspecialchars($account) . '</td>';
+                                echo '</tr>';
+
+                                // Headers row for this account
+                                echo '<tr class="bg-gray-100 font-semibold">';
+                                echo '<td class="px-4 py-2 border">Tanggal</td>';
+                                echo '<td class="px-4 py-2 border">Keterangan</td>';
+                                echo '<td class="px-4 py-2 border text-right">Debit</td>';
+                                echo '<td class="px-4 py-2 border text-right">Kredit</td>';
+                                echo '<td class="px-4 py-2 border text-right">Saldo</td>';
+                                echo '</tr>';
+
+                                // Account transactions
+                                $running_balance = 0;
+                                foreach ($account_data['transactions'] as $row) {
+                                    $running_balance += ($row['debit'] - $row['kredit']);
+
+                                    echo '<tr class="divide-x divide-gray-200">';
+                                    echo "<td class='px-4 py-2 border'>" . date('d/m/Y', strtotime($row['tanggal'])) . "</td>";
+                                    echo "<td class='px-4 py-2 border'>" . htmlspecialchars($row['keterangan']) . "</td>";
+                                    echo "<td class='px-4 py-2 border text-right'>" . ($row['debit'] > 0 ? formatCurrency($row['debit']) : '-') . "</td>";
+                                    echo "<td class='px-4 py-2 border text-right'>" . ($row['kredit'] > 0 ? formatCurrency($row['kredit']) : '-') . "</td>";
+                                    echo "<td class='px-4 py-2 border text-right'>" . formatCurrency(abs($running_balance)) . ($running_balance >= 0 ? ' (D)' : ' (K)') . "</td>";
+                                    echo '</tr>';
+                                }
+
+                                // Account totals
+                                echo '<tr class="font-bold border-t border-gray-300">';
+                                echo '<td colspan="2" class="px-4 py-2 text-center border">Total ' . htmlspecialchars($account) . '</td>';
+                                echo '<td class="px-4 py-2 text-right border">' . formatCurrency($account_data['total_debit']) . '</td>';
+                                echo '<td class="px-4 py-2 text-right border">' . formatCurrency($account_data['total_kredit']) . '</td>';
+                                echo '<td class="px-4 py-2 border"></td>';
+                                echo '</tr>';
+
+                                // Account balance
+                                echo '<tr class="font-bold border-b-2 border-gray-800">';
+                                if ($is_debit) {
+                                    echo '<td colspan="2" class="px-4 py-2 text-center border">Saldo Debit</td>';
+                                    echo '<td class="px-4 py-2 text-right border">' . formatCurrency(abs($saldo)) . '</td>';
+                                    echo '<td colspan="2" class="px-4 py-2 border"></td>';
+                                } else {
+                                    echo '<td colspan="3" class="px-4 py-2 text-center border">Saldo Kredit</td>';
+                                    echo '<td class="px-4 py-2 text-right border">' . formatCurrency(abs($saldo)) . '</td>';
+                                    echo '<td class="px-4 py-2 border"></td>';
+                                }
                                 echo '</tr>';
                             }
                         }
                         echo '</tbody>';
-                        // Footer untuk Saldo Akhir Periode
-                        echo '<tfoot class="bg-gray-100 font-bold"><tr><td colspan="5" class="px-4 py-3 text-right border">Saldo Akhir Periode</td><td class="px-4 py-3 text-right border">' . formatCurrency($saldo_berjalan) . '</td></tr></tfoot>';
+                        // No footer needed as each account has its own totals
                     } else { // Untuk laporan selain buku besar
                         echo '<tbody class="bg-white">';
                         if (empty($data)) {
