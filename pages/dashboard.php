@@ -66,7 +66,7 @@ if ($userLevel === 'admin') {
 
     // Urutkan dan potong array aktivitas
     $data['latestActivities'] = array_slice($latestActivities, 0, 5);
-} elseif ($userLevel === 'pegawai') {
+} elseif ($userLevel === 'Pegawai Operasional') {
     // --- Data untuk Statistik Pegawai ---
     $today = date('Y-m-d');
     $stmt_sales_today = $pdo->prepare("SELECT COUNT(*) FROM penjualan WHERE tgl_jual = ?");
@@ -241,7 +241,7 @@ $filtered_pembelian = $stmt_filtered_pembelian->fetch(PDO::FETCH_ASSOC)['total']
                         </table>
                     </div>
                 </div>
-            <?php elseif ($userLevel === 'pegawai'): ?>
+            <?php elseif ($userLevel === 'Pegawai Operasional'): ?>
                  <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">Pintasan Cepat</h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
