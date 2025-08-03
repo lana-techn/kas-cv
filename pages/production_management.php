@@ -198,8 +198,8 @@ $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                         <i class="fas fa-check-circle"></i>
                                                     </button>
                                                 <?php endif; ?>
-                                                <button onclick="deleteProduction('<?php echo $production['id_produksi']; ?>')" class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200" title="Hapus">
-                                                    <i class="fas fa-trash"></i>
+                                                <!-- <button onclick="deleteProduction('<?php echo $production['id_produksi']; ?>')" class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition duration-200" title="Hapus"> -->
+                                                    <!-- <i class="fas fa-trash"></i> -->
                                                 </button>
                                             </div>
                                         </td>
