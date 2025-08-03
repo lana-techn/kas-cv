@@ -1,13 +1,12 @@
 -- Creating database for Sistem Informasi Pengelolaan Kas
 CREATE DATABASE IF NOT EXISTS cv_kwas;
 USE cv_kwas;
-
-                                                                                                                                                                            -- Table User
+-- Table User
 CREATE TABLE user (
     id_user VARCHAR(25) PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
     password VARCHAR(60) NOT NULL,
-    level ENUM('admin', 'pegawai', 'pemilik') NOT NULL
+    level ENUM('admin', 'Pegawai Operasional', 'pemilik') NOT NULL
 );
 
 -- Table Bahan
@@ -146,43 +145,51 @@ CREATE TABLE kas (
 
 -- Insert default user dengan password_hash
 INSERT INTO user (id_user, username, password, level) VALUES
-('ADM001', 'admin', '$2y$10$Yxl2I/QQ157yxazUkNjdQeUXjgNjzda898P8ybxamWIZe0/PR6PtK', 'admin'),
-('PGW001', 'pegawai', '$2y$10$T3l3s99dCR.f0PpzVWSOxu8NTM4lHk8pvWIXaUR52He3uuFtuYI92', 'pegawai'), 
-('PMK001', 'pemilik', '$2y$10$gn83LAxQj61peFixbUH2rOvcYkFO8wxIcLLULDu6GCw11/iCvpJuq', 'pemilik');
+('ADM001', 'Della', '$2y$10$Yxl2I/QQ157yxazUkNjdQeUXjgNjzda898P8ybxamWIZe0/PR6PtK', 'admin'),
+('PGW001', 'Uswatun', '$2y$10$T3l3s99dCR.f0PpzVWSOxu8NTM4lHk8pvWIXaUR52He3uuFtuYI92', 'Pegawai Operasional'), 
+('PMK001', 'Agung', '$2y$10$gn83LAxQj61peFixbUH2rOvcYkFO8wxIcLLULDu6GCw11/iCvpJuq', 'pemilik');
 
--- Insert dummy suppliers
+-- Insert dummy suppliers//
 INSERT INTO supplier (id_supplier, nama_supplier, alamat, no_telpon) VALUES
-('SUP001', 'PT Bahan Baku Utama', 'Jl. Industri No. 123, Jakarta', '021-5551234'),
-('SUP002', 'CV Material Sejahtera', 'Jl. Merdeka No. 45, Bandung', '022-4445678'),
-('SUP003', 'UD Makmur Jaya', 'Jl. Pahlawan No. 67, Surabaya', '031-3334567');
+('SUP63353833', 'Bista Elektrik', 'Jl Imogiri', '081231239991'),
+('SUP63355827', 'Toko Cat Lancar Jaya', 'Jl Bantul', '081231239922'),
+('SUP63358022', 'Toko Kayu Sejahtera', 'Kulon Progo', '012334444447'),
+('SUP63360060', 'Toko Plastik Barokah', 'Yogyakarta', '089504271013'),
+('SUP66496804', 'PT Jaya Sejahtera', 'Sleman', '089234562344');
 
--- Insert dummy materials (bahan)
+-- Insert dummy materials (bahan)//
 INSERT INTO bahan (kd_bahan, nama_bahan, stok, satuan) VALUES
-('BHN001', 'Kayu Jati', 100, 'Meter'),
-('BHN002', 'Cat Kayu', 50, 'Liter'),
-('BHN003', 'Paku', 1000, 'Kg'),
-('BHN004', 'Lem Kayu', 75, 'Liter'),
-('BHN005', 'Amplas', 200, 'Lembar');
+('BHN63339343', 'Kayu Jati 100 x 20 x 2 cm', 50, 'Pcs'),
+('BHN63343836', 'Amplas 3M', 40, 'Pcs'),
+('BHN63345382', 'Beeswax 10 gr', 50, 'Pcs'),
+('BHN63348066', 'Plastik Packing', 500, 'Pcs'),
+('BHN66482873', 'Cat Kayu 30 ml', 50, 'Pcs');
 
--- Insert dummy products (barang)
+-- Insert dummy products (barang)//
 INSERT INTO barang (kd_barang, nama_barang, stok) VALUES
-('BRG001', 'Meja Makan', 10),
-('BRG002', 'Kursi Tamu', 24),
-('BRG003', 'Lemari Pakaian', 5),
-('BRG004', 'Rak Buku', 15);
+('BRG63352845', 'Talenan Oval', 50),
+('BRG63353651', 'Talenan Gagang', 50),
+('BRG66496411', 'Nampan', 50);
 
--- Insert dummy production records
+-- Insert dummy production records//
 INSERT INTO produksi (id_produksi, kd_barang, tgl_produksi, status, jumlah_produksi) VALUES
-('PRD001', 'BRG001', '2025-07-01', 'Selesai', 5),
-('PRD002', 'BRG002', '2025-07-05', 'Selesai', 12),
-('PRD003', 'BRG003', '2025-07-10', 'Proses', 3);
+('PRD63363117', 'BRG63352845', '2025-07-27', 'Selesai', 50),
+('PRD63373358', 'BRG63353651', '2025-07-27', 'Selesai', 50),
+('PRD66502199', 'BRG66496411', '2025-07-28', 'Selesai', 50);
 
--- Insert dummy production details
+
+-- Insert dummy production details //
 INSERT INTO detail_produksi (id_detproduksi, id_produksi, kd_bahan, satuan, jum_bahan) VALUES
-('DPR001', 'PRD001', 'BHN001', 'Meter', 10),
-('DPR002', 'PRD001', 'BHN002', 'Liter', 5),
-('DPR003', 'PRD002', 'BHN001', 'Meter', 24),
-('DPR004', 'PRD003', 'BHN001', 'Meter', 9);
-
-
-
+('DPR63367924', 'PRD63363117', 'BHN63339343', 'Pcs', 10),
+('DPR63367931', 'PRD63363117', 'BHN63348066', 'Pcs', 30),
+('DPR63367938', 'PRD63363117', 'BHN63345382', 'Pcs', 3),
+('DPR63367953', 'PRD63363117', 'BHN63343836', 'Pcs', 3),
+('DPR63381014', 'PRD63373358', 'BHN63339343', 'Pcs', 10),
+('DPR63381024', 'PRD63373358', 'BHN63343836', 'Pcs', 3),
+('DPR63381049', 'PRD63373358', 'BHN63345382', 'Pcs', 3),
+('DPR63381065', 'PRD63373358', 'BHN63348066', 'Pcs', 30),
+('DPR66510405', 'PRD66502199', 'BHN63345382', 'Pcs', 3),
+('DPR66510410', 'PRD66502199', 'BHN66482873', 'Pcs', 3),
+('DPR66510434', 'PRD66502199', 'BHN63348066', 'Pcs', 3),
+('DPR66510450', 'PRD66502199', 'BHN63343836', 'Pcs', 3),
+('DPR66510497', 'PRD66502199', 'BHN63339343', 'Pcs', 10);
