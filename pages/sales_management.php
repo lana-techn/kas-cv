@@ -5,7 +5,7 @@ require_once '../includes/function.php';
 
 // Pastikan session aktif dan periksa hak akses
 if (session_status() === PHP_SESSION_NONE) session_start();
-if (!isset($_SESSION['user']) || !in_array($_SESSION['user']['level'], ['admin', 'pegawai'])) {
+if (!isset($_SESSION['user']) || !in_array($_SESSION['user']['level'], ['admin', 'Pegawai Operasional'])) {
     header('Location: login.php');
     exit;
 }
@@ -66,6 +66,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     if (empty($_POST['tgl_jual']) || !isset($_POST['total_jual']) || !isset($_POST['bayar']) || floatval($_POST['bayar']) < floatval($_POST['total_jual'])) {
         $_SESSION['error'] = 'Data tidak lengkap atau jumlah bayar kurang dari total.';
+        header('Location: sales_management.php');
+        exit;
+    }
+
+    // Validasi tanggal penjualan harus hari ini (tidak boleh kemarin atau besok)
+    $today = date('Y-m-d');
+    if ($_POST['tgl_jual'] !== $today) {
+        $_SESSION['error'] = 'Tanggal penjualan hanya boleh hari ini.';
         header('Location: sales_management.php');
         exit;
     }
@@ -323,7 +331,7 @@ $today = date('Y-m-d');
 <!-- Modal Form Penjualan -->
 <div id="sale-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
     <div class="bg-gray-50 rounded-xl shadow-2xl w-full max-w-4xl mx-auto max-h-[90vh] flex flex-col">
-        <form id="sale-form" method="POST" action="sales_management.php" class="flex flex-col flex-grow">
+        <form id="sale-form" method="POST" action="sales_management.php" class="flex flex-col flex-grow" onsubmit="return validateSalesForm()">
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-5 rounded-t-xl flex justify-between items-center">
                 <h3 id="modal-title" class="text-xl font-semibold text-white">Input Data Penjualan</h3>
                 <button type="button" onclick="closeModalSales()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
@@ -540,6 +548,24 @@ $today = date('Y-m-d');
             closeModalSales();
         }
     });
+
+    // Validasi form penjualan
+    function validateSalesForm() {
+        // Validasi tanggal penjualan (harus hari ini)
+        const tglJualInput = document.getElementById('form-tgl-jual');
+        const selectedDate = tglJualInput.value;
+        const today = new Date().toISOString().split('T')[0];
+
+        if (selectedDate !== today) {
+            alert('Tanggal penjualan hanya boleh hari ini.');
+            tglJualInput.focus();
+            return false;
+        }
+
+        // Validasi lainnya bisa ditambahkan di sini
+
+        return true;
+    }
 </script>
 
 <?php require_once '../includes/footer.php'; ?>
