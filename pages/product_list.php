@@ -2,7 +2,7 @@
 require_once '../config/db_connect.php';
 require_once '../includes/function.php';
 require_once '../includes/header.php';
-if ($_SESSION['user']['level'] !== 'pegawai') {
+if ($_SESSION['user']['level'] !== 'Pegawai Operasional') {
     header('Location: dashboard.php');
     exit;
 }
