@@ -199,7 +199,7 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <select name="level" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">Pilih Level</option>
                         <option value="admin">Admin</option>
-                        <option value="pegawai">Pegawai</option>
+                        <option value="pegawai">Pegawai Operasional</option>
                         <option value="pemilik">Pemilik</option>
                     </select>
                 </div>
@@ -239,7 +239,7 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Level <span class="text-red-500">*</span></label>
                     <select name="level" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="admin" ${level === 'admin' ? 'selected' : ''}>Admin</option>
-                        <option value="pegawai" ${level === 'pegawai' ? 'selected' : ''}>Pegawai</option>
+                        <option value="pegawai" ${level === 'pegawai' ? 'selected' : ''}>Pegawai Operasional</option>
                         <option value="pemilik" ${level === 'pemilik' ? 'selected' : ''}>Pemilik</option>
                     </select>
                 </div>
