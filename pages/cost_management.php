@@ -3,12 +3,11 @@ require_once '../config/db_connect.php';
 require_once '../includes/function.php';
 require_once '../includes/header.php';
 
-// Pastikan hanya admin atau pegawai yang bisa mengakses
-if (!in_array($_SESSION['user']['level'], ['admin', 'pegawai'])) {
+// Pastikan hanya admin atau Pegawai Operasional yang bisa mengakses
+if (!in_array($_SESSION['user']['level'], ['admin', 'Pegawai Operasional'])) {
     header('Location: dashboard.php');
     exit;
 }
-
 $message = '';
 $error = '';
 
@@ -16,6 +15,14 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         $pdo->beginTransaction();
+
+        // Validasi tanggal biaya - tidak boleh di masa depan
+        if (!empty($_POST['tgl_biaya'])) {
+            $today = date('Y-m-d');
+            if ($_POST['tgl_biaya'] > $today) {
+                throw new Exception('Tanggal biaya tidak boleh di masa depan.');
+            }
+        }
 
         if ($_POST['action'] === 'add') {
             // Validasi input untuk penambahan biaya
@@ -366,6 +373,17 @@ if ($search_query !== '') {
 
         if (isNaN(total) || parseInt(total) <= 0) {
             alert('Total biaya harus berupa angka positif!');
+            return false;
+        }
+
+        // Validasi tanggal tidak boleh di masa depan
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selectedDate = new Date(tanggal);
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate > today) {
+            alert('Tanggal biaya tidak boleh di masa depan.');
             return false;
         }
 
