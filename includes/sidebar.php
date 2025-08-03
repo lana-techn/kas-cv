@@ -1,7 +1,7 @@
 <div class="flex h-full flex-col lg:w-64 p-4 ">
     <div class="flex h-16 shrink-0 items-center">
         <a href="dashboard.php" class="flex items-center gap-x-3">
-            <img class="h-10 w-auto" src="../assets/images/logo.png" alt="Logo Perusahaan">
+            <img class="h-10 w-auto" src="../assets/images/logo2.png" alt="Logo Perusahaan">
         </a>
     </div>
 
@@ -18,7 +18,7 @@
 
                 // Definisi navigasi dengan kelas ikon Font Awesome
                 $navigation = [
-                    ['name' => 'Dashboard', 'href' => 'dashboard.php', 'icon' => 'fa-solid fa-gauge-high', 'roles' => ['admin', 'pegawai', 'pemilik']],
+                    ['name' => 'Dashboard', 'href' => 'dashboard.php', 'icon' => 'fa-solid fa-gauge-high', 'roles' => ['admin', 'Pegawai Operasional', 'pemilik']],
 
                     // Menu Admin
                     ['name' => 'User', 'href' => 'user_management.php', 'icon' => 'fa-solid fa-users', 'roles' => ['admin']],
@@ -27,16 +27,16 @@
                     ['name' => 'Supplier', 'href' => 'supplier_management.php', 'icon' => 'fa-solid fa-truck-fast', 'roles' => ['admin']],
                     ['name' => 'Produksi', 'href' => 'production_management.php', 'icon' => 'fa-solid fa-industry', 'roles' => ['admin']],
 
-                    // Menu Pegawai
-                    ['name' => 'Penjualan', 'href' => 'sales_management.php', 'icon' => 'fa-solid fa-cart-shopping', 'roles' => ['pegawai']],
-                    ['name' => 'Pembelian', 'href' => 'purchase_management.php', 'icon' => 'fa-solid fa-dolly', 'roles' => ['pegawai']],
-                    ['name' => 'Biaya', 'href' => 'cost_management.php', 'icon' => 'fa-solid fa-file-invoice-dollar', 'roles' => ['pegawai']],
-                    ['name' => 'Daftar Bahan', 'href' => 'material_list.php', 'icon' => 'fa-solid fa-list-ul', 'roles' => ['pegawai']],
-                    ['name' => 'Daftar Barang', 'href' => 'product_list.php', 'icon' => 'fa-solid fa-list-check', 'roles' => ['pegawai']],
-                    ['name' => 'Daftar Supplier', 'href' => 'supplier_list.php', 'icon' => 'fa-solid fa-address-book', 'roles' => ['pegawai']],
+                    // Menu Pegawai Operasional
+                    ['name' => 'Penjualan', 'href' => 'sales_management.php', 'icon' => 'fa-solid fa-cart-shopping', 'roles' => ['Pegawai Operasional']],
+                    ['name' => 'Pembelian', 'href' => 'purchase_management.php', 'icon' => 'fa-solid fa-dolly', 'roles' => ['Pegawai Operasional']],
+                    ['name' => 'Biaya', 'href' => 'cost_management.php', 'icon' => 'fa-solid fa-file-invoice-dollar', 'roles' => ['Pegawai Operasional']],
+                    ['name' => 'Daftar Bahan', 'href' => 'material_list.php', 'icon' => 'fa-solid fa-list-ul', 'roles' => ['Pegawai Operasional']],
+                    ['name' => 'Daftar Barang', 'href' => 'product_list.php', 'icon' => 'fa-solid fa-list-check', 'roles' => ['Pegawai Operasional']],
+                    ['name' => 'Daftar Supplier', 'href' => 'supplier_list.php', 'icon' => 'fa-solid fa-address-book', 'roles' => ['Pegawai Operasional']],
 
                     // Menu Pemilik
-                    ['name' => 'Laporan', 'href' => 'reports.php', 'icon' => 'fa-solid fa-chart-pie', 'roles' => ['pemilik', 'pegawai']],
+                    ['name' => 'Laporan', 'href' => 'reports.php', 'icon' => 'fa-solid fa-chart-pie', 'roles' => ['pemilik', 'Pegawai Operasional']],
                 ];
                 ?>
 
