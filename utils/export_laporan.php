@@ -64,7 +64,8 @@ switch ($report_type) {
             -- Transaksi Pembelian (Debit: Pembelian Bahan, Kredit: Kas)
             SELECT 
                 p.tgl_beli as tanggal,
-                CONCAT('Pembelian Bahan ', SUBSTRING(dp.kd_bahan, 1, 10), ' (No.', p.id_pembelian, ')') as keterangan,
+                p.id_pembelian as id_transaksi,
+                CONCAT('Pembelian Bahan ', GROUP_CONCAT(SUBSTRING(dp.kd_bahan, 1, 10) SEPARATOR ', ')) as keterangan,
                 p.total_beli as debit,
                 0 as kredit
             FROM 
@@ -80,7 +81,8 @@ switch ($report_type) {
             
             SELECT 
                 p.tgl_beli as tanggal,
-                '     Kas' as keterangan,
+                p.id_pembelian as id_transaksi,
+                'Kas' as keterangan,
                 0 as debit,
                 p.total_beli as kredit
             FROM 
@@ -92,7 +94,8 @@ switch ($report_type) {
             
             SELECT 
                 p.tgl_beli as tanggal,
-                CONCAT('     (Pembelian Bahan Baku - No.', p.id_pembelian, ')') as keterangan,
+                p.id_pembelian as id_transaksi,
+                CONCAT('(Pembelian Bahan Baku - No.Transaksi: ', p.id_pembelian, ')') as keterangan,
                 0 as debit,
                 0 as kredit
             FROM 
@@ -107,6 +110,7 @@ switch ($report_type) {
             -- Transaksi Biaya Operasional (Debit: Biaya Operasional, Kredit: Kas)
             SELECT 
                 b.tgl_biaya as tanggal,
+                b.id_biaya as id_transaksi,
                 CONCAT('Biaya Operasional: ', b.nama_biaya) as keterangan,
                 b.total as debit,
                 0 as kredit
@@ -119,7 +123,8 @@ switch ($report_type) {
             
             SELECT 
                 b.tgl_biaya as tanggal,
-                '     Kas' as keterangan,
+                b.id_biaya as id_transaksi,
+                'Kas' as keterangan,
                 0 as debit,
                 b.total as kredit
             FROM 
@@ -131,7 +136,8 @@ switch ($report_type) {
             
             SELECT 
                 b.tgl_biaya as tanggal,
-                CONCAT('     (Biaya Operasional untuk ', b.nama_biaya, ')') as keterangan,
+                b.id_biaya as id_transaksi,
+                CONCAT('(Biaya Operasional untuk ', b.nama_biaya, ')') as keterangan,
                 0 as debit,
                 0 as kredit
             FROM 
@@ -141,8 +147,10 @@ switch ($report_type) {
             
             UNION ALL
             
+            -- Transaksi Penjualan (Debit: Kas, Kredit: Penjualan Produk)
             SELECT 
                 p.tgl_jual as tanggal,
+                p.id_penjualan as id_transaksi,
                 'Kas' as keterangan,
                 p.total_jual as debit,
                 0 as kredit
@@ -155,7 +163,8 @@ switch ($report_type) {
             
             SELECT 
                 p.tgl_jual as tanggal,
-                CONCAT('Penjualan Produk ', SUBSTRING(dp.kd_barang, 1, 10), ' (No.', p.id_penjualan, ')') as keterangan,
+                p.id_penjualan as id_transaksi,
+                CONCAT('Penjualan Produk ', GROUP_CONCAT(SUBSTRING(dp.kd_barang, 1, 10) SEPARATOR ', ')) as keterangan,
                 0 as debit,
                 p.total_jual as kredit
             FROM 
@@ -171,7 +180,8 @@ switch ($report_type) {
             
             SELECT 
                 p.tgl_jual as tanggal,
-                CONCAT('     (Penerimaan dari Penjualan No.', p.id_penjualan, ')') as keterangan,
+                p.id_penjualan as id_transaksi,
+                CONCAT('(Penerimaan dari Penjualan No.', p.id_penjualan, ')') as keterangan,
                 0 as debit,
                 0 as kredit
             FROM 
@@ -345,21 +355,37 @@ echo '<head>
         <meta charset="UTF-8">
         <title>' . htmlspecialchars($report_title) . '</title>
         <style>
-            th { background-color:#f2f2f2; font-weight:bold; }
+            th { background-color:#f2f2f2; font-weight:bold; padding: 8px; border: 1px solid #ddd; }
+            td { padding: 6px; border: 1px solid #ddd; }
             .text-right { text-align: right; }
             .indent { padding-left: 40px; }
+            .total-row { font-weight: bold; background-color: #f2f2f2; }
+            .account-header { font-weight: bold; text-align: center; background-color: #e9e9e9; }
+            .description-row { font-style: italic; color: #666; }
         </style>
       </head><body>';
-echo '<h2 style="text-align:center; font-size:16pt; font-weight:bold;">CV. KARYA WAHANA SENTOSA</h2>';
-echo '<h3 style="text-align:center; font-size:14pt; font-weight:bold;">' . htmlspecialchars($report_title) . '</h3>';
-echo '<h4 style="text-align:center; font-size:11pt;">Periode: ' . date('d M Y', strtotime($start_date)) . ' - ' . date('d M Y', strtotime($end_date)) . '</h4>';
+echo '<table style="width:100%; margin-bottom:20px; border:none;">';
+echo '<tr><td style="text-align:center; font-size:16pt; font-weight:bold; border:none;">CV. KARYA WAHANA SENTOSA</td></tr>';
+echo '<tr><td style="text-align:center; font-size:14pt; font-weight:bold; border:none;">' . htmlspecialchars($report_title) . '</td></tr>';
+echo '<tr><td style="text-align:center; font-size:11pt; border:none;">Periode: ' . date('d M Y', strtotime($start_date)) . ' - ' . date('d M Y', strtotime($end_date)) . '</td></tr>';
+echo '</table>';
 echo '<table border="1" style="width:100%; border-collapse:collapse;">';
 
 // --- Header Tabel, tidak ditampilkan untuk buku besar ---
 if ($report_type != 'buku_besar') {
     echo '<thead><tr>';
-    foreach ($headers as $header) {
-        echo '<th style="background-color:#f2f2f2; font-weight:bold; padding:6px;">' . htmlspecialchars($header) . '</th>';
+    if ($report_type == 'jurnal') {
+        // Special formatting for jurnal headers
+        echo '<th style="background-color:#f2f2f2; font-weight:bold; padding:8px; text-align:center;">No</th>';
+        echo '<th style="background-color:#f2f2f2; font-weight:bold; padding:8px;">Tanggal</th>';
+        echo '<th style="background-color:#f2f2f2; font-weight:bold; padding:8px;">Keterangan</th>';
+        echo '<th style="background-color:#f2f2f2; font-weight:bold; padding:8px; text-align:right;">Debit</th>';
+        echo '<th style="background-color:#f2f2f2; font-weight:bold; padding:8px; text-align:right;">Kredit</th>';
+    } else {
+        foreach ($headers as $header) {
+            $align = in_array($header, ['Debit', 'Kredit', 'Saldo', 'Jumlah (Rp)', 'Total', 'Bayar', 'Kembali']) ? 'text-align:right;' : '';
+            echo '<th style="background-color:#f2f2f2; font-weight:bold; padding:8px; ' . $align . '">' . htmlspecialchars($header) . '</th>';
+        }
     }
     echo '</tr></thead>';
 }
@@ -409,11 +435,11 @@ if (empty($data) && $report_type != 'buku_besar') {
 
             // Headers row for this account
             echo '<tr style="background-color:#f2f2f2; font-weight:bold;">';
-            echo '<td style="padding:6px;">Tanggal</td>';
-            echo '<td style="padding:6px;">Keterangan</td>';
-            echo '<td style="padding:6px;">Debit</td>';
-            echo '<td style="padding:6px;">Kredit</td>';
-            echo '<td style="padding:6px;">Saldo</td>';
+            echo '<td style="padding:8px;">Tanggal</td>';
+            echo '<td style="padding:8px;">Keterangan</td>';
+            echo '<td style="padding:8px; text-align:right;">Debit</td>';
+            echo '<td style="padding:8px; text-align:right;">Kredit</td>';
+            echo '<td style="padding:8px; text-align:right;">Saldo</td>';
             echo '</tr>';
 
             // Account transactions
@@ -432,21 +458,21 @@ if (empty($data) && $report_type != 'buku_besar') {
 
             // Account totals
             echo '<tr style="font-weight:bold; border-top:1px solid #999;">';
-            echo '<td colspan="2" style="text-align:center;">Total ' . htmlspecialchars($account) . '</td>';
-            echo '<td style="text-align:right; mso-number-format:\#\,\#\#0;">' . $account_data['total_debit'] . '</td>';
-            echo '<td style="text-align:right; mso-number-format:\#\,\#\#0;">' . $account_data['total_kredit'] . '</td>';
+            echo '<td colspan="2" style="text-align:center; padding:8px;">Total ' . htmlspecialchars($account) . '</td>';
+            echo '<td style="text-align:right; padding:8px; mso-number-format:\#\,\#\#0;">' . $account_data['total_debit'] . '</td>';
+            echo '<td style="text-align:right; padding:8px; mso-number-format:\#\,\#\#0;">' . $account_data['total_kredit'] . '</td>';
             echo '<td></td>';
             echo '</tr>';
 
             // Account balance
             echo '<tr style="font-weight:bold; border-bottom:2px solid #333;">';
             if ($is_debit) {
-                echo '<td colspan="2" style="text-align:center;">Saldo Debit</td>';
-                echo '<td style="text-align:right; mso-number-format:\#\,\#\#0;">' . abs($saldo) . '</td>';
+                echo '<td colspan="2" style="text-align:center; padding:8px;">Saldo Debit</td>';
+                echo '<td style="text-align:right; padding:8px; mso-number-format:\#\,\#\#0;">' . abs($saldo) . '</td>';
                 echo '<td colspan="2" style="text-align:right;"></td>';
             } else {
-                echo '<td colspan="3" style="text-align:center;">Saldo Kredit</td>';
-                echo '<td style="text-align:right; mso-number-format:\#\,\#\#0;">' . abs($saldo) . '</td>';
+                echo '<td colspan="3" style="text-align:center; padding:8px;">Saldo Kredit</td>';
+                echo '<td style="text-align:right; padding:8px; mso-number-format:\#\,\#\#0;">' . abs($saldo) . '</td>';
                 echo '<td></td>';
             }
             echo '</tr>';
@@ -456,64 +482,88 @@ if (empty($data) && $report_type != 'buku_besar') {
     } else if ($report_type === 'jurnal') { // Laporan Jurnal Umum
         $currentDate = null;
         $entryNumber = 1;
+        $total_debit = 0;
+        $total_kredit = 0;
 
-        foreach ($data as $index => $row) {
-            // Periksa apakah ini adalah tanggal baru untuk menentukan nomor entri dan tampilan tanggal
-            $showDate = false;
-            $showNumber = false;
+        // Group data by transaction date and ID for proper display
+        $grouped_transactions = [];
+        foreach ($data as $row) {
+            if (!isset($row['tanggal'])) continue;
 
-            if ($currentDate != $row['tanggal']) {
-                $currentDate = $row['tanggal'];
-                $showDate = true;
-                $showNumber = true;
-            } else if ($row['debit'] > 0 && $index > 0 && $data[$index - 1]['debit'] > 0) {
-                // Jika baris ini dan baris sebelumnya sama-sama debit, berarti ini entri baru
-                $showNumber = true;
-                $entryNumber++;
-            } else if ($row['debit'] > 0 && $index > 0 && $data[$index - 1]['kredit'] > 0) {
-                // Jika baris ini debit dan sebelumnya kredit, ini entri baru
-                $showNumber = true;
-                $entryNumber++;
+            $transaction_key = date('Y-m-d', strtotime($row['tanggal'])) . '-' .
+                (isset($row['id_transaksi']) ? $row['id_transaksi'] : md5($row['keterangan']));
+
+            if (!isset($grouped_transactions[$transaction_key])) {
+                $grouped_transactions[$transaction_key] = [
+                    'date' => $row['tanggal'],
+                    'entries' => []
+                ];
             }
 
-            echo '<tr>';
+            $grouped_transactions[$transaction_key]['entries'][] = $row;
+        }
 
-            // Kolom Nomor
-            if ($showNumber) {
-                echo '<td>' . $entryNumber . '.</td>';
-            } else {
+        // Process each transaction group
+        foreach ($grouped_transactions as $transaction) {
+            $entry_date = $transaction['date'];
+            $debit_entry = null;
+            $credit_entry = null;
+            $description_entry = null;
+
+            // Find debit, credit and description entries
+            foreach ($transaction['entries'] as $entry) {
+                if ($entry['debit'] > 0) {
+                    $debit_entry = $entry;
+                    $total_debit += $entry['debit'];
+                } elseif ($entry['kredit'] > 0) {
+                    $credit_entry = $entry;
+                    $total_kredit += $entry['kredit'];
+                } elseif (strpos($entry['keterangan'], '(') === 0) {
+                    $description_entry = $entry;
+                }
+            }
+
+            // Output debit entry
+            if ($debit_entry) {
+                echo '<tr>';
+                echo '<td>' . $entryNumber++ . '.</td>';
+                echo '<td>' . date('d/m/Y', strtotime($entry_date)) . '</td>';
+                echo '<td style="font-weight:bold;">' . htmlspecialchars($debit_entry['keterangan']) . '</td>';
+                echo '<td style="mso-number-format:\#\,\#\#0; text-align:right;">' . $debit_entry['debit'] . '</td>';
+                echo '<td style="text-align:right;">-</td>';
+                echo '</tr>';
+            }
+
+            // Output credit entry
+            if ($credit_entry) {
+                echo '<tr>';
                 echo '<td></td>';
-            }
-
-            // Kolom Tanggal
-            if ($showDate) {
-                echo '<td>' . date('d/m/Y', strtotime($row['tanggal'])) . '</td>';
-            } else {
                 echo '<td></td>';
+                echo '<td style="padding-left: 40px;">' . htmlspecialchars($credit_entry['keterangan']) . '</td>';
+                echo '<td style="text-align:right;">-</td>';
+                echo '<td style="mso-number-format:\#\,\#\#0; text-align:right;">' . $credit_entry['kredit'] . '</td>';
+                echo '</tr>';
             }
 
-            // Kolom Keterangan dengan indentasi untuk kredit
-            if ($row['kredit'] > 0 || (strpos($row['keterangan'], '     ') === 0)) {
-                echo '<td style="padding-left: 40px;">' . htmlspecialchars($row['keterangan']) . '</td>';
-            } else {
-                echo '<td>' . htmlspecialchars($row['keterangan']) . '</td>';
+            // Output description entry
+            if ($description_entry) {
+                echo '<tr style="font-style:italic; color:#666;">';
+                echo '<td></td>';
+                echo '<td></td>';
+                echo '<td colspan="3" style="padding-left: 40px;">' . htmlspecialchars($description_entry['keterangan']) . '</td>';
+                echo '</tr>';
             }
 
-            // Kolom Debit & Kredit
-            echo '<td style="mso-number-format:\#\,\#\#0; text-align:right;">' . ($row['debit'] > 0 ? $row['debit'] : '') . '</td>';
-            echo '<td style="mso-number-format:\#\,\#\#0; text-align:right;">' . ($row['kredit'] > 0 ? $row['kredit'] : '') . '</td>';
-            echo '</tr>';
+            // Add a spacer row between transaction groups for better readability
+            echo '<tr><td colspan="5" style="height:5px;"></td></tr>';
         }
 
         // Add footer with totals
-        $total_debit = array_sum(array_column($data, 'debit'));
-        $total_kredit = array_sum(array_column($data, 'kredit'));
-
         echo '<tfoot>';
-        echo '<tr>';
-        echo '<td colspan="3" style="text-align:right; font-weight:bold;">Total</td>';
-        echo '<td style="text-align:right; font-weight:bold; mso-number-format:\#\,\#\#0;">' . $total_debit . '</td>';
-        echo '<td style="text-align:right; font-weight:bold; mso-number-format:\#\,\#\#0;">' . $total_kredit . '</td>';
+        echo '<tr style="font-weight:bold; background-color:#f2f2f2;">';
+        echo '<td colspan="3" style="text-align:right; padding:8px;">Total</td>';
+        echo '<td style="text-align:right; padding:8px; mso-number-format:\#\,\#\#0;">' . $total_debit . '</td>';
+        echo '<td style="text-align:right; padding:8px; mso-number-format:\#\,\#\#0;">' . $total_kredit . '</td>';
         echo '</tr>';
         echo '</tfoot>';
     } else { // Untuk Laporan Lainnya
@@ -546,10 +596,10 @@ if (empty($data) && $report_type != 'buku_besar') {
 echo '</tbody></table>';
 
 // Add document footer
-echo '<div style="margin-top:20px; text-align:center; font-size:10pt; color:#666;">';
-echo '<p>Dicetak pada: ' . date('d F Y') . '</p>';
-echo '<p>CV. Karya Wahana Sentosa &copy; ' . date('Y') . '</p>';
-echo '</div>';
+echo '<table style="width:100%; margin-top:20px; border:none;">';
+echo '<tr><td style="text-align:center; font-size:10pt; color:#666; border:none;">Dicetak pada: ' . date('d F Y') . '</td></tr>';
+echo '<tr><td style="text-align:center; font-size:10pt; color:#666; border:none;">CV. Karya Wahana Sentosa &copy; ' . date('Y') . '</td></tr>';
+echo '</table>';
 
 echo '</body></html>';
 
