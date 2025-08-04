@@ -65,7 +65,8 @@ switch ($report_type) {
             -- Transaksi Pembelian (Debit: Pembelian Bahan, Kredit: Kas)
             SELECT 
                 p.tgl_beli as tanggal,
-                CONCAT('Pembelian Bahan ', SUBSTRING(dp.kd_bahan, 1, 10)) as keterangan,
+                p.id_pembelian as id_transaksi,
+                CONCAT('Pembelian Bahan ', GROUP_CONCAT(SUBSTRING(dp.kd_bahan, 1, 10) SEPARATOR ', ')) as keterangan,
                 p.total_beli as debit,
                 0 as kredit
             FROM 
@@ -81,7 +82,8 @@ switch ($report_type) {
             
             SELECT 
                 p.tgl_beli as tanggal,
-                '     Kas' as keterangan,
+                p.id_pembelian as id_transaksi,
+                'Kas' as keterangan,
                 0 as debit,
                 p.total_beli as kredit
             FROM 
@@ -93,7 +95,8 @@ switch ($report_type) {
             
             SELECT 
                 p.tgl_beli as tanggal,
-                CONCAT('     (Pembelian Bahan Baku - No.Transaksi: ', p.id_pembelian, ')') as keterangan,
+                p.id_pembelian as id_transaksi,
+                CONCAT('(Pembelian Bahan Baku - No.Transaksi: ', p.id_pembelian, ')') as keterangan,
                 0 as debit,
                 0 as kredit
             FROM 
@@ -108,6 +111,7 @@ switch ($report_type) {
             -- Transaksi Biaya Operasional (Debit: Biaya Operasional, Kredit: Kas)
             SELECT 
                 b.tgl_biaya as tanggal,
+                b.id_biaya as id_transaksi,
                 CONCAT('Biaya Operasional: ', b.nama_biaya) as keterangan,
                 b.total as debit,
                 0 as kredit
@@ -120,7 +124,8 @@ switch ($report_type) {
             
             SELECT 
                 b.tgl_biaya as tanggal,
-                '     Kas' as keterangan,
+                b.id_biaya as id_transaksi,
+                'Kas' as keterangan,
                 0 as debit,
                 b.total as kredit
             FROM 
@@ -132,7 +137,8 @@ switch ($report_type) {
             
             SELECT 
                 b.tgl_biaya as tanggal,
-                CONCAT('     (Biaya Operasional untuk ', b.nama_biaya, ')') as keterangan,
+                b.id_biaya as id_transaksi,
+                CONCAT('(Biaya Operasional untuk ', b.nama_biaya, ')') as keterangan,
                 0 as debit,
                 0 as kredit
             FROM 
@@ -145,6 +151,7 @@ switch ($report_type) {
             -- Transaksi Penjualan (Debit: Kas, Kredit: Penjualan Produk)
             SELECT 
                 p.tgl_jual as tanggal,
+                p.id_penjualan as id_transaksi,
                 'Kas' as keterangan,
                 p.total_jual as debit,
                 0 as kredit
@@ -157,7 +164,8 @@ switch ($report_type) {
             
             SELECT 
                 p.tgl_jual as tanggal,
-                CONCAT('Penjualan Produk ', SUBSTRING(dp.kd_barang, 1, 10)) as keterangan,
+                p.id_penjualan as id_transaksi,
+                CONCAT('Penjualan Produk ', GROUP_CONCAT(SUBSTRING(dp.kd_barang, 1, 10) SEPARATOR ', ')) as keterangan,
                 0 as debit,
                 p.total_jual as kredit
             FROM 
@@ -173,7 +181,8 @@ switch ($report_type) {
             
             SELECT 
                 p.tgl_jual as tanggal,
-                CONCAT('     (Penerimaan dari Penjualan No.', p.id_penjualan, ')') as keterangan,
+                p.id_penjualan as id_transaksi,
+                CONCAT('(Penerimaan dari Penjualan No.', p.id_penjualan, ')') as keterangan,
                 0 as debit,
                 0 as kredit
             FROM 
@@ -225,7 +234,7 @@ switch ($report_type) {
             SELECT 
                 p.tgl_beli as tanggal,
                 'Pembelian' as akun,
-                CONCAT('Pembelian Bahan ', SUBSTRING(dp.kd_bahan, 1, 10), ' (No.', p.id_pembelian, ')') as keterangan,
+                CONCAT('Pembelian Bahan ', GROUP_CONCAT(SUBSTRING(dp.kd_bahan, 1, 10) SEPARATOR ', '), ' (No.', p.id_pembelian, ')') as keterangan,
                 p.total_beli as debit,
                 0 as kredit
             FROM 
@@ -296,7 +305,7 @@ switch ($report_type) {
             SELECT 
                 p.tgl_jual as tanggal,
                 'Penjualan' as akun,
-                CONCAT('Penjualan Produk ', SUBSTRING(dp.kd_barang, 1, 10), ' (No.', p.id_penjualan, ')') as keterangan,
+                CONCAT('Penjualan Produk ', GROUP_CONCAT(SUBSTRING(dp.kd_barang, 1, 10) SEPARATOR ', '), ' (No.', p.id_penjualan, ')') as keterangan,
                 0 as debit,
                 p.total_jual as kredit
             FROM 
@@ -412,8 +421,12 @@ if (!empty($query)) {
                     <?php if ($report_type != 'buku_besar'): ?>
                         <thead class="bg-gray-100">
                             <tr>
-                                <?php foreach ($headers as $header): ?>
-                                    <th class="px-4 py-2 text-sm font-semibold text-gray-700"><?php echo $header; ?></th>
+                                <?php
+                                // Special header formatting for jurnal report
+                                $header_style = ($report_type == 'jurnal') ? 'border text-center py-3' : 'text-sm font-semibold text-gray-700';
+
+                                foreach ($headers as $header): ?>
+                                    <th class="px-4 py-2 <?php echo $header_style; ?>"><?php echo $header; ?></th>
                                 <?php endforeach; ?>
                             </tr>
                         </thead>
@@ -432,47 +445,87 @@ if (!empty($query)) {
                             if ($report_type == 'jurnal'):
                                 $currentDate = null;
                                 $entryNumber = 1;
-                            ?>
-                                <?php foreach ($data as $index => $row):
-                                    $total_debit += $row['debit'];
-                                    $total_kredit += $row['kredit'];
+                                $total_debit = 0;
+                                $total_kredit = 0;
+                                $current_transaction = null;
+                                $previous_date = null;
+                                $processed_entries = [];
 
-                                    // Periksa apakah ini adalah tanggal baru untuk menentukan nomor entri dan tampilan tanggal
-                                    $showDate = false;
-                                    $showNumber = false;
+                                // Group data by transaction date and ID for proper display
+                                $grouped_transactions = [];
+                                foreach ($data as $row) {
+                                    if (!isset($row['tanggal'])) continue;
 
-                                    if ($currentDate != $row['tanggal']) {
-                                        $currentDate = $row['tanggal'];
-                                        $showDate = true;
-                                        $showNumber = true;
-                                    } else if ($row['debit'] > 0 && $index > 0 && $data[$index - 1]['debit'] > 0) {
-                                        // Jika baris ini dan baris sebelumnya sama-sama debit, berarti ini entri baru
-                                        $showNumber = true;
-                                        $entryNumber++;
-                                    } else if ($row['debit'] > 0 && $index > 0 && $data[$index - 1]['kredit'] > 0) {
-                                        // Jika baris ini debit dan sebelumnya kredit, ini entri baru
-                                        $showNumber = true;
-                                        $entryNumber++;
+                                    $transaction_key = date('Y-m-d', strtotime($row['tanggal'])) . '-' .
+                                        (isset($row['id_transaksi']) ? $row['id_transaksi'] : md5($row['keterangan']));
+
+                                    if (!isset($grouped_transactions[$transaction_key])) {
+                                        $grouped_transactions[$transaction_key] = [
+                                            'date' => $row['tanggal'],
+                                            'entries' => []
+                                        ];
                                     }
-                                ?>
-                                    <tr>
-                                        <td class="px-4 py-2 text-center">
-                                            <?php echo $showNumber ? $entryNumber . '.' : ''; ?>
-                                        </td>
-                                        <td class="px-4 py-2">
-                                            <?php echo $showDate ? date('d/m/Y', strtotime($row['tanggal'])) : ''; ?>
-                                        </td>
-                                        <td class="px-4 py-2" <?php echo ($row['kredit'] > 0 || strpos($row['keterangan'], '     ') === 0) ? 'style="padding-left: 40px;"' : ''; ?>>
-                                            <?php echo htmlspecialchars($row['keterangan']); ?>
-                                        </td>
-                                        <td class="px-4 py-2 text-right">
-                                            <?php echo $row['debit'] > 0 ? formatCurrency($row['debit']) : ''; ?>
-                                        </td>
-                                        <td class="px-4 py-2 text-right">
-                                            <?php echo $row['kredit'] > 0 ? formatCurrency($row['kredit']) : ''; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
+
+                                    $grouped_transactions[$transaction_key]['entries'][] = $row;
+                                }
+
+                                // Process each transaction group
+                                foreach ($grouped_transactions as $transaction) {
+                                    $entry_date = $transaction['date'];
+                                    $debit_entry = null;
+                                    $credit_entry = null;
+                                    $description_entry = null;
+
+                                    // Find debit, credit and description entries
+                                    foreach ($transaction['entries'] as $entry) {
+                                        if ($entry['debit'] > 0) {
+                                            $debit_entry = $entry;
+                                            $total_debit += $entry['debit'];
+                                        } elseif ($entry['kredit'] > 0) {
+                                            $credit_entry = $entry;
+                                            $total_kredit += $entry['kredit'];
+                                        } elseif (strpos($entry['keterangan'], '(') === 0) {
+                                            $description_entry = $entry;
+                                        }
+                                    }
+
+                                    // Output debit entry
+                                    if ($debit_entry) {
+                                        echo '<tr class="divide-x divide-gray-200">';
+                                        echo '<td class="px-4 py-2 border text-center">' . $entryNumber++ . '</td>';
+                                        echo '<td class="px-4 py-2 border">' . date('d/m/Y', strtotime($entry_date)) . '</td>';
+                                        echo '<td class="px-4 py-2 border"><strong>' . htmlspecialchars($debit_entry['keterangan']) . '</strong></td>';
+                                        echo '<td class="px-4 py-2 border text-right">' . formatCurrency($debit_entry['debit']) . '</td>';
+                                        echo '<td class="px-4 py-2 border text-right">-</td>';
+                                        echo '</tr>';
+                                    }
+
+                                    // Output credit entry
+                                    if ($credit_entry) {
+                                        echo '<tr class="divide-x divide-gray-200">';
+                                        echo '<td class="px-4 py-2 border text-center"></td>';
+                                        echo '<td class="px-4 py-2 border"></td>';
+                                        echo '<td class="px-4 py-2 border"><span style="padding-left: 40px;">' . htmlspecialchars($credit_entry['keterangan']) . '</span></td>';
+                                        echo '<td class="px-4 py-2 border text-right">-</td>';
+                                        echo '<td class="px-4 py-2 border text-right">' . formatCurrency($credit_entry['kredit']) . '</td>';
+                                        echo '</tr>';
+                                    }
+
+                                    // Output description entry
+                                    if ($description_entry) {
+                                        echo '<tr class="divide-x divide-gray-200 italic bg-gray-50">';
+                                        echo '<td class="px-4 py-2 border text-center"></td>';
+                                        echo '<td class="px-4 py-2 border"></td>';
+                                        echo '<td class="px-4 py-2 border" colspan="3"><span style="padding-left: 40px; font-style: italic; color: #666;">' . htmlspecialchars($description_entry['keterangan']) . '</span></td>';
+                                        echo '</tr>';
+                                    }
+
+                                    // Add a spacer row between transaction groups
+                                    echo '<tr><td colspan="5" class="py-1"></td></tr>';
+                                }
+
+                                // Show total only once - already calculated in the loop above
+                            ?>
                                 <?php elseif ($report_type == 'buku_besar'):
                                 // Group data by account
                                 $accounts = [];
@@ -585,9 +638,9 @@ if (!empty($query)) {
                         <tfoot class="bg-gray-100 font-bold">
                             <?php if ($report_type == 'jurnal'): ?>
                                 <tr>
-                                    <td colspan="3" class="px-4 py-2 text-right">Total</td>
-                                    <td class="px-4 py-2 text-right"><?php echo formatCurrency($total_debit); ?></td>
-                                    <td class="px-4 py-2 text-right"><?php echo formatCurrency($total_kredit); ?></td>
+                                    <td colspan="3" class="px-4 py-3 text-right border">Total</td>
+                                    <td class="px-4 py-3 text-right border"><?php echo formatCurrency($total_debit); ?></td>
+                                    <td class="px-4 py-3 text-right border"><?php echo formatCurrency($total_kredit); ?></td>
                                 </tr>
                             <?php elseif ($report_type == 'buku_besar'): ?>
                                 <!-- No footer needed as each account already has its own totals -->
